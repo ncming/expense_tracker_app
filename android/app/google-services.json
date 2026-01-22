@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "102808211062",
+    "project_id": "so-chi-thu",
+    "storage_bucket": "so-chi-thu.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:102808211062:android:591ff147952256d9181957",
+        "android_client_info": {
+          "package_name": "com.example.no_money_no_me"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSJp_qEoSZBmcuDJLrRnGurfQ6RTnLIe4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:102808211062:android:408ad2217d599a77181957",
+        "android_client_info": {
+          "package_name": "com.sameei.expense_tracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSJp_qEoSZBmcuDJLrRnGurfQ6RTnLIe4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
