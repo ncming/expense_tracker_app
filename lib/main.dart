@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-// [MỚI] Import thư viện Firebase
+//Import thư viện Firebase
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart'; //Thư viện xác thực
 
-// [MỚI] Import thư viện này để xử lý việc định dạng số (dấu phẩy) trong ô nhập liệu
+//Import thư viện này để xử lý việc định dạng số (dấu phẩy) trong ô nhập liệu
 import 'package:flutter/services.dart';
 
 void main() async {
@@ -18,17 +20,206 @@ void main() async {
   //Khởi động Firebase
   await Firebase.initializeApp();
 
-  // Phải dùng .then() vì đây là hàm bất đồng bộ (cần thời gian để tải)
+  // Phải dùng .then() vì đây là hàm bất đồng bộ
   initializeDateFormatting('vi_VN', null).then((_) {
     runApp(const MyApp());
   });
 }
 
-// ---------------------------------------------------------
-// [MỚI] CLASS XỬ LÝ DẤU PHẨY (FORMATTER)
+//BỘ ĐIỀU HƯỚNG VÀ XÁC THỰC
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Sổ Thu Chi',
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueGrey, brightness: Brightness.light),
+        scaffoldBackgroundColor: Colors.blueGrey.shade50,
+        appBarTheme: const AppBarTheme(backgroundColor: Colors.blueGrey, foregroundColor: Colors.white),
+      ),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('vi', 'VN')],
+
+      //Bộ lọc không vào thẳng Home nữa
+      home: const AuthWrapper(),
+    );
+  }
+}
+
+//Widget Check login
+//login: to MyHomePage
+//nuh uh: AuthScreen
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(), //trạng thái đăng nhập
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        if (snapshot.hasData) {
+          return const MyHomePage(); //User -> HomePage
+        }
+        return const AuthScreen();
+      },
+    );
+  }
+}
+
+//LOGIN|REGISTER SCREEN
+class AuthScreen extends StatefulWidget {
+  const AuthScreen({super.key});
+
+  @override
+  State<AuthScreen> createState() => _AuthScreenState();
+}
+
+class _AuthScreenState extends State<AuthScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController(); // [MỚI] Controller xác nhận mật khẩu
+
+  bool _isLogin = true; //switch login & reg
+  bool _isLoading = false;
+
+  void _submitAuthForm() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim(); // [MỚI] Lấy giá trị xác nhận
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Chưa nhập email và mật khẩu.")));
+      return;
+    }
+
+    // [MỚI] Kiểm tra mật khẩu xác nhận khi Đăng ký
+    if (!_isLogin && password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mật khẩu xác nhận không khớp!"), backgroundColor: Colors.red));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      if (_isLogin) {
+        //Login
+        await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: password);
+      } else {
+        //register
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: password);
+      }
+      // AuthWrapper tu chuyen trang khi dang nhap thanh cong
+    } on FirebaseAuthException catch (e) {
+     // In mã lỗi ra để biết đường sửa
+      String message = "Lỗi: ${e.code} - ${e.message}";
+      if (e.code == 'weak-password') message = 'Mật khẩu yếu (cần ít nhất 6 ký tự).';
+      else if (e.code == 'email-already-in-use') message = 'Email này đã được sử dụng.';
+      else if (e.code == 'user-not-found') message = 'Không tìm thấy tài khoản.';
+      else if (e.code == 'wrong-password') message = 'Sai mật khẩu.';
+      else if (e.code == 'invalid-email') message = 'Email không hợp lệ.';
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.blueGrey,
+      body: Center(
+        child: Card(
+          margin: const EdgeInsets.all(20),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.account_balance_wallet, size: 80, color: Colors.blueGrey.shade700),
+                const SizedBox(height: 10),
+                Text(_isLogin ? "Login" : "Register", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
+                
+                // --- EMAIL ---
+                TextField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(labelText: "Email", prefixIcon: Icon(Icons.email)),
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next, // [MỚI] Enter -> Next
+                ),
+                
+                // --- PASSWORD ---
+                TextField(
+                  controller: _passwordController,
+                  decoration: const InputDecoration(labelText: "Mật khẩu", prefixIcon: Icon(Icons.lock)),
+                  obscureText: true,
+                  // [MỚI] Nếu login thì Enter -> Done, nếu Register thì Enter -> Next
+                  textInputAction: _isLogin ? TextInputAction.done : TextInputAction.next,
+                  onSubmitted: (_) {
+                    if (_isLogin) _submitAuthForm(); // Đăng nhập ngay nếu bấm Enter
+                  },
+                ),
+
+                // [MỚI] --- CONFIRM PASSWORD (Chỉ hiện khi Đăng ký) ---
+                if (!_isLogin)
+                  TextField(
+                    controller: _confirmPasswordController,
+                    decoration: const InputDecoration(labelText: "Xác nhận mật khẩu", prefixIcon: Icon(Icons.lock_outline)),
+                    obscureText: true,
+                    textInputAction: TextInputAction.done, // [MỚI] Enter -> Done
+                    onSubmitted: (_) => _submitAuthForm(), // Đăng ký ngay nếu bấm Enter
+                  ),
+
+                const SizedBox(height: 20),
+                if (_isLoading)
+                  const CircularProgressIndicator()
+                else
+                  Column(
+                    children: [
+                      ElevatedButton(
+                        onPressed: _submitAuthForm,
+                        style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+                        child: Text(_isLogin ? "Login" : "Register"),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _isLogin = !_isLogin;
+                            _confirmPasswordController.clear(); // Xóa ô xác nhận khi chuyển tab
+                          });
+                        },
+                        child: Text(_isLogin ? "Chưa có tài khoản? Đăng ký ngay" : "Đã có tài khoản? Đăng nhập"),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+//CLASS XỬ LÝ DẤU PHẨY
 // Class này giúp tự động thêm dấu phẩy ngăn cách hàng nghìn khi nhập số tiền
-// Ví dụ: Nhập 10000 -> Hiển thị 10,000
-// ---------------------------------------------------------
 class ThousandsSeparatorInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
@@ -37,10 +228,10 @@ class ThousandsSeparatorInputFormatter extends TextInputFormatter {
       return newValue.copyWith(text: '');
     }
 
-    // 1. Xóa tất cả các ký tự không phải là số (ví dụ dấu phẩy cũ) để lấy số thô
+    // 1. Xóa tất cả các ký tự không phải là số để lấy số thô
     String valueStr = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
-    
-    // Nếu xóa xong mà rỗng (vd người dùng nhập toàn chữ) thì trả về rỗng
+
+    // Nếu xóa xong mà rỗng thì trả về rỗng
     if (valueStr.isEmpty) return newValue.copyWith(text: '');
 
     // 2. Chuyển thành số
@@ -98,7 +289,7 @@ class CategoryItem {
   }
 }
 
-// [MỚI] Cập nhật Class Transaction để liên kết với CategoryItem qua ID
+//Cập nhật Class Transaction để liên kết với CategoryItem qua ID
 class Transaction {
   final String id;
   final double amount;
@@ -133,50 +324,15 @@ class Transaction {
       id: id,
       // dấu ? và ?? 0 (Nếu không có tiền thì coi là 0 đồng)
       amount: (map['amount'] as num? ?? 0).toDouble(),
-      
+
       // Nếu không có ngày thì lấy ngày hiện tại
       date: map['date'] != null ? DateTime.parse(map['date']) : DateTime.now(),
-      
+
       // Nếu không có categoryId thì để rỗng
       categoryId: map['categoryId'] ?? '',
-      
+
       note: map['note'] ?? '',
       isExpense: map['isExpense'] ?? true,
-    );
-  }
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Sổ Thu Chi',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blueGrey,
-          brightness: Brightness.light,
-        ),
-        scaffoldBackgroundColor: Colors.blueGrey.shade50,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.blueGrey,
-          foregroundColor: Colors.white,
-        ),
-      ),
-      
-      // [MỚI] CẤU HÌNH NGÔN NGỮ CHO TOÀN BỘ APP
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('vi', 'VN'),
-      ],
-
-      home: const MyHomePage(),
     );
   }
 }
@@ -191,10 +347,10 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now();
-  int _selectedIndex = 0; // [MỚI] Để quản lý Tabbar
+  int _selectedIndex = 0; //Để quản lý Tabbar
 
-  // [MỚI] Giả lập ID người dùng (Sau này thay bằng ID thật khi làm đăng nhập)
-  final String userId = "user_test_1";
+  //Lấy ID thật của người dùng đang đăng nhập
+  final String userId = FirebaseAuth.instance.currentUser!.uid;
 
   // Danh sách Icon có sẵn để chọn khi tạo danh mục
   final List<IconData> _availableIcons = [
@@ -223,44 +379,27 @@ class _MyHomePageState extends State<MyHomePage> {
   void _checkAndCreateDefaultCategories() async {
     final catRef = FirebaseFirestore.instance.collection('users').doc(userId).collection('categories');
     final snapshot = await catRef.get();
-    
+
     if (snapshot.docs.isEmpty) {
       // --- 1. NHÓM CHI TIÊU (EXPENSE) ---
-      // Ăn uống: Màu Cam
       await catRef.add(CategoryItem(id: '', name: 'Ăn uống', iconCode: Icons.fastfood.codePoint, colorValue: Colors.orange.value, isExpense: true).toMap());
-      // Chi tiêu hàng ngày: Màu Xanh lơ
       await catRef.add(CategoryItem(id: '', name: 'Chi tiêu hàng ngày', iconCode: Icons.shopping_cart.codePoint, colorValue: Colors.cyan.value, isExpense: true).toMap());
-      // Quần áo: Màu Hồng
       await catRef.add(CategoryItem(id: '', name: 'Quần áo', iconCode: Icons.checkroom.codePoint, colorValue: Colors.pink.value, isExpense: true).toMap());
-      // Mỹ phẩm: Màu Tím nhạt
       await catRef.add(CategoryItem(id: '', name: 'Mỹ phẩm', iconCode: Icons.face.codePoint, colorValue: Colors.purpleAccent.value, isExpense: true).toMap());
-      // Phí giao lưu: Màu Vàng chanh
       await catRef.add(CategoryItem(id: '', name: 'Phí giao lưu', iconCode: Icons.local_bar.codePoint, colorValue: Colors.lime.shade800.value, isExpense: true).toMap());
-      // Y tế: Màu Đỏ
       await catRef.add(CategoryItem(id: '', name: 'Y tế', iconCode: Icons.medical_services.codePoint, colorValue: Colors.red.value, isExpense: true).toMap());
-      // Giáo dục: Màu Xanh dương đậm
       await catRef.add(CategoryItem(id: '', name: 'Giáo dục', iconCode: Icons.school.codePoint, colorValue: Colors.blue.shade900.value, isExpense: true).toMap());
-      // Điện nước: Màu Vàng đậm
       await catRef.add(CategoryItem(id: '', name: 'Tiền điện nước', iconCode: Icons.lightbulb.codePoint, colorValue: Colors.amber.shade800.value, isExpense: true).toMap());
-      // Phí liên lạc: Màu Chàm
       await catRef.add(CategoryItem(id: '', name: 'Phí liên lạc', iconCode: Icons.phone_android.codePoint, colorValue: Colors.indigo.value, isExpense: true).toMap());
-      // Tiền nhà: Màu Nâu
       await catRef.add(CategoryItem(id: '', name: 'Tiền nhà', iconCode: Icons.home.codePoint, colorValue: Colors.brown.value, isExpense: true).toMap());
-      // Di chuyển: Màu Xanh dương
       await catRef.add(CategoryItem(id: '', name: 'Di chuyển', iconCode: Icons.directions_bus.codePoint, colorValue: Colors.blue.value, isExpense: true).toMap());
 
       // --- 2. NHÓM THU NHẬP (INCOME) ---
-      // Tiền lương: Màu Xanh lá đậm
       await catRef.add(CategoryItem(id: '', name: 'Tiền lương', iconCode: Icons.attach_money.codePoint, colorValue: Colors.green.shade800.value, isExpense: false).toMap());
-      // Phụ cấp: Màu Xanh lá nhạt
       await catRef.add(CategoryItem(id: '', name: 'Tiền phụ cấp', iconCode: Icons.account_balance_wallet.codePoint, colorValue: Colors.lightGreen.value, isExpense: false).toMap());
-      // Tiền thưởng: Màu Vàng kim
       await catRef.add(CategoryItem(id: '', name: 'Tiền thưởng', iconCode: Icons.card_giftcard.codePoint, colorValue: Colors.amber.value, isExpense: false).toMap());
-      // Đầu tư: Màu Tím than
       await catRef.add(CategoryItem(id: '', name: 'Đầu tư', iconCode: Icons.trending_up.codePoint, colorValue: Colors.deepPurple.value, isExpense: false).toMap());
-      // Thu nhập phụ: Màu Xanh Teal
       await catRef.add(CategoryItem(id: '', name: 'Thu nhập phụ', iconCode: Icons.monetization_on.codePoint, colorValue: Colors.teal.value, isExpense: false).toMap());
-      // Thu nhập tạm thời: Màu Xám xanh
       await catRef.add(CategoryItem(id: '', name: 'Thu nhập tạm thời', iconCode: Icons.hourglass_bottom.codePoint, colorValue: Colors.blueGrey.value, isExpense: false).toMap());
     }
   }
@@ -268,7 +407,7 @@ class _MyHomePageState extends State<MyHomePage> {
   //Cập nhật hàm thêm: Gửi dữ liệu lên Firebase
   void _addNewTransaction(double amount, DateTime chosenDate, String categoryId, String note, bool isExpense) {
     final newTx = Transaction(
-      id: '', 
+      id: '',
       amount: amount,
       date: chosenDate,
       categoryId: categoryId, // Lưu ID string
@@ -304,7 +443,7 @@ class _MyHomePageState extends State<MyHomePage> {
           'note': note,
           'isExpense': isExpense,
         });
-    
+
     setState(() {
       _selectedDay = chosenDate; // Nhảy lịch tới ngày vừa sửa
     });
@@ -312,7 +451,7 @@ class _MyHomePageState extends State<MyHomePage> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã cập nhật giao dịch!')));
   }
 
-  // [MỚI] Hiển thị Form Thêm/Sửa Giao dịch
+  //Hiển thị Form Thêm/Sửa Giao dịch
   void _showTransactionForm(BuildContext ctx, List<CategoryItem> categories, {Transaction? existingTx}) {
     showModalBottomSheet(
       context: ctx,
@@ -325,7 +464,7 @@ class _MyHomePageState extends State<MyHomePage> {
           // Nếu existingTx != null -> Chế độ Sửa, ngược lại là Thêm
           child: TransactionForm(
             categories: categories,
-            existingTx: existingTx, 
+            existingTx: existingTx,
             onSubmit: (amount, date, catId, note, isExpense) {
               if (existingTx == null) {
                 _addNewTransaction(amount, date, catId, note, isExpense);
@@ -347,14 +486,14 @@ class _MyHomePageState extends State<MyHomePage> {
         .collection('transactions')
         .doc(id)
         .delete();
-        
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Đã xóa!')),
     );
   }
 
-  // --- LOGIC QUẢN LÝ DANH MỤC (Tab Tiện ích) ---
-  
+  // --- LOGIC QUẢN LÝ DANH MỤC ---
+
   // Hàm Thêm hoặc Sửa danh mục
   void _addOrEditCategory({CategoryItem? item, required bool isExpense}) {
     final nameController = TextEditingController(text: item?.name ?? '');
@@ -399,8 +538,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       child: Container(
                         width: 32, height: 32,
                         decoration: BoxDecoration(
-                          color: color, 
-                          shape: BoxShape.circle, 
+                          color: color,
+                          shape: BoxShape.circle,
                           border: selectedColor == color ? Border.all(width: 3, color: Colors.black45) : null
                         ),
                       ),
@@ -415,7 +554,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 onPressed: () {
                   if (nameController.text.isEmpty) return;
                   final data = CategoryItem(
-                    id: '', 
+                    id: '',
                     name: nameController.text,
                     iconCode: selectedIcon.codePoint,
                     colorValue: selectedColor.value,
@@ -443,7 +582,7 @@ class _MyHomePageState extends State<MyHomePage> {
     FirebaseFirestore.instance.collection('users').doc(userId).collection('categories').doc(id).delete();
   }
 
-  // [MỚI] Hàm mở Popup chọn Tháng/Năm cho Lịch chính
+  //Hàm mở Popup chọn Tháng/Năm cho Lịch chính
   void _showMonthYearPicker() {
     showDatePicker(
       context: context,
@@ -451,24 +590,45 @@ class _MyHomePageState extends State<MyHomePage> {
       firstDate: DateTime(2020), //Từ năm 2020
       lastDate: DateTime.now(),  //Tới hiện tại
       locale: const Locale('vi', 'VN'),
-      
+
       //Giúp chọn năm nhanh hơn nếu muốn
-      initialDatePickerMode: DatePickerMode.year, 
+      initialDatePickerMode: DatePickerMode.year,
     ).then((pickedDate) {
       if (pickedDate == null) return;
       setState(() {
         // Cập nhật lịch chính để nhảy tới ngày đã chọn
-        _focusedDay = pickedDate; 
+        _focusedDay = pickedDate;
         _selectedDay = pickedDate;
       });
     });
   }
 
-  // [MỚI] Hàm chuyển tab
+  //Hàm chuyển tab
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+  }
+  
+  // Hàm Đăng Xuất (Thêm vào Appbar hoặc Cài đặt)
+  void _logout() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Đăng xuất"),
+        content: const Text("Bạn có chắc muốn đăng xuất không?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Hủy")),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx); // Đóng popup
+              FirebaseAuth.instance.signOut(); // Đăng xuất
+            },
+            child: const Text("Đăng xuất"),
+          )
+        ],
+      ),
+    );
   }
 
   @override
@@ -479,17 +639,17 @@ class _MyHomePageState extends State<MyHomePage> {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('users').doc(userId).collection('categories').snapshots(),
       builder: (context, catSnapshot) {
-        
+
         // Nếu chưa tải xong danh mục, hiện loading
         if (!catSnapshot.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
         // Chuyển đổi dữ liệu Categories thành List
         final categories = catSnapshot.data!.docs.map((doc) => CategoryItem.fromMap(doc.data() as Map<String, dynamic>, doc.id)).toList();
-        
+
         // Map để tra cứu nhanh: ID -> CategoryItem (Để hiển thị icon/tên trong lịch sử)
         final categoryMap = {for (var item in categories) item.id: item};
 
-        // --- XÂY DỰNG TAB TIỆN ÍCH (QUẢN LÝ DANH MỤC) ---
+        // --- XÂY DỰNG TAB TIỆN ÍCH ---
         final utilitiesTab = DefaultTabController(
           length: 2,
           child: Column(
@@ -511,7 +671,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         );
 
-        // --- XÂY DỰNG TAB LỊCH (TRANG CHỦ) ---
+        // --- XÂY DỰNG TAB LỊCH ---
         // STREAM BUILDER THỨ 2: Lấy dữ liệu Giao dịch
         final calendarTab = StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
@@ -520,7 +680,7 @@ class _MyHomePageState extends State<MyHomePage> {
               .collection('transactions')
               .snapshots(),
           builder: (context, txSnapshot) {
-            
+
             if (txSnapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
@@ -538,7 +698,7 @@ class _MyHomePageState extends State<MyHomePage> {
               return isSameDay(tx.date, _selectedDay);
             }).toList();
 
-            // [MỚI] TÍNH TOÁN TỔNG THU - CHI TRONG NGÀY
+            //TÍNH TOÁN TỔNG THU - CHI TRONG NGÀY
             double dailyIncome = 0;
             double dailyExpense = 0;
 
@@ -550,21 +710,21 @@ class _MyHomePageState extends State<MyHomePage> {
               }
             }
             double dailyTotal = dailyIncome - dailyExpense; // Số dư
-            
+
             // --- NỘI DUNG VIEW ---
             return Column(
               children: [
                 TableCalendar(//Lịch
                   firstDay: DateTime(2020),
-                  lastDay: DateTime(2030), 
+                  lastDay: DateTime(2030),
                   focusedDay: _focusedDay,
                   currentDay: DateTime.now(),
-                  locale: 'vi_VN', 
+                  locale: 'vi_VN',
                   calendarFormat: isLandscape ? CalendarFormat.twoWeeks : CalendarFormat.month,
                   startingDayOfWeek: StartingDayOfWeek.monday,
                   headerStyle: const HeaderStyle(
-                    formatButtonVisible: false, 
-                    titleCentered: true,        
+                    formatButtonVisible: false,
+                    titleCentered: true,
                   ),
                   onHeaderTapped: (_) => _showMonthYearPicker(),
 
@@ -580,12 +740,12 @@ class _MyHomePageState extends State<MyHomePage> {
                       _focusedDay = focusedDay;
                     });
                   },
-                  // [MỚI] Event loader lấy từ list firebase
+                  //Event loader lấy từ list firebase
                   eventLoader: (day) {
                     return allTransactions.where((tx) => isSameDay(tx.date, day)).toList();
                   },
                 ),
-                
+
                 // WIDGET HIỂN THỊ TỔNG KẾT NGÀY
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -611,9 +771,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     ],
                   ),
                 ),
-                
+
                 const Divider(height: 1, thickness: 1),
-                
+
                 // DANH SÁCH THU CHI
                 Expanded(
                   child: selectedTransactions.isEmpty
@@ -631,7 +791,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             // [QUAN TRỌNG] Tra cứu Category từ Map
                             final cat = categoryMap[tx.categoryId];
 
-                            // [MỚI] Bọc Dismissible để vuốt xóa
+                            //Bọc Dismissible để vuốt xóa
                             return Dismissible(
                               key: ValueKey(tx.id),
                               background: Container(
@@ -675,9 +835,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                       ),
                                       IconButton(
                                         icon: const Icon(Icons.edit),
-                                        color: Colors.grey, 
+                                        color: Colors.grey,
                                         iconSize: 20,
-                                        // [MỚI] Mở form sửa
+                                        //Mở form sửa
                                         onPressed: () => _showTransactionForm(context, categories, existingTx: tx),
                                       ),
                                     ],
@@ -703,22 +863,26 @@ class _MyHomePageState extends State<MyHomePage> {
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(_selectedIndex == 2 ? 'Quản lý Danh mục' : 'Lịch'),
-            actions: _selectedIndex == 0 ? [
-              IconButton(
-                icon: const Icon(Icons.calendar_month),
-                tooltip: 'Chọn tháng/năm',
-                onPressed: _showMonthYearPicker,
-              ),
-              IconButton(
-                icon: const Icon(Icons.add),
-                tooltip: 'Thêm thu chi mới',
-                onPressed: () => _showTransactionForm(context, categories),
-              ),
-            ] : null,
+            title: Text(_selectedIndex == 2 ? 'Quản lý Danh mục' : 'Sổ Thu Chi'),
+            actions: [
+              if (_selectedIndex == 0) ...[
+                IconButton(
+                  icon: const Icon(Icons.calendar_month),
+                  tooltip: 'Chọn tháng/năm',
+                  onPressed: _showMonthYearPicker,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  tooltip: 'Thêm thu chi mới',
+                  onPressed: () => _showTransactionForm(context, categories),
+                ),
+              ],
+              // Nút Đăng xuất
+              IconButton(icon: const Icon(Icons.logout), onPressed: _logout, tooltip: "Đăng xuất")
+            ],
           ),
           body: widgetOptions.elementAt(_selectedIndex),
-          
+
           floatingActionButton: _selectedIndex == 2
             // Nút thêm danh mục ở Tab Tiện ích
             ? FloatingActionButton(
@@ -739,13 +903,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: const Icon(Icons.add),
                 onPressed: () => _showTransactionForm(context, categories),
               ) : null),
-              
+
           bottomNavigationBar: BottomNavigationBar(
             type: BottomNavigationBarType.fixed,
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Lịch'),
               BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Báo cáo'),
-              BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Tiện ích'), 
+              BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Tiện ích'),
               BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Cài đặt'),
             ],
             currentIndex: _selectedIndex,
@@ -796,7 +960,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-// FORM NHẬP LIỆU THU CHI (Đã nâng cấp Dropdown động & Chế độ Sửa)
+// FORM NHẬP LIỆU THU CHI
 class TransactionForm extends StatefulWidget {
   final List<CategoryItem> categories;
   // Callback trả về dữ liệu khi bấm Lưu
@@ -822,10 +986,10 @@ class _TransactionFormState extends State<TransactionForm> {
     // Nếu là chế độ Sửa, điền sẵn dữ liệu cũ
     if (widget.existingTx != null) {
       final tx = widget.existingTx!;
-      // [UPDATE] Định dạng lại số tiền cũ có dấu phẩy khi mở lên sửa
+      //Định dạng lại số tiền cũ có dấu phẩy khi mở lên sửa
       final formatter = NumberFormat("#,###", "en_US");
       _amountController.text = formatter.format(tx.amount);
-      
+
       _noteController.text = tx.note;
       _selectedDate = tx.date;
       _selectedCategoryId = tx.categoryId;
@@ -859,11 +1023,11 @@ class _TransactionFormState extends State<TransactionForm> {
               const SizedBox(width: 10),
               ToggleButtons(
                 isSelected: [_isExpense, !_isExpense],
-                onPressed: (int index) { 
-                  setState(() { 
-                    _isExpense = index == 0; 
-                    _selectedCategoryId = null; 
-                  }); 
+                onPressed: (int index) {
+                  setState(() {
+                    _isExpense = index == 0;
+                    _selectedCategoryId = null;
+                  });
                 },
                 borderRadius: BorderRadius.circular(10),
                 selectedColor: Colors.white,
@@ -873,21 +1037,21 @@ class _TransactionFormState extends State<TransactionForm> {
             ],
           ),
           const SizedBox(height: 10),
-          
-          // [UPDATE] Thêm inputFormatters để tự động thêm dấu phẩy
+
+          //Thêm inputFormatters để tự động thêm dấu phẩy
           TextField(
-            controller: _amountController, 
-            decoration: const InputDecoration(labelText: 'Số tiền'), 
-            keyboardType: TextInputType.number, 
+            controller: _amountController,
+            decoration: const InputDecoration(labelText: 'Số tiền'),
+            keyboardType: TextInputType.number,
             autofocus: true,
             inputFormatters: [
                FilteringTextInputFormatter.digitsOnly, // Chỉ cho nhập số
                ThousandsSeparatorInputFormatter(),     // Tự động thêm dấu phẩy
             ],
           ),
-          
+
           const SizedBox(height: 10),
-          
+
           // [QUAN TRỌNG] Dropdown hiển thị danh mục lấy từ Firebase
           DropdownButtonFormField<String>(
             value: _selectedCategoryId,
@@ -900,7 +1064,7 @@ class _TransactionFormState extends State<TransactionForm> {
             }).toList(),
             onChanged: (val) => setState(() => _selectedCategoryId = val),
           ),
-          
+
           TextField(controller: _noteController, decoration: const InputDecoration(labelText: 'Ghi chú'), textCapitalization: TextCapitalization.sentences),
           const SizedBox(height: 10),
           Row(children: [
@@ -914,7 +1078,7 @@ class _TransactionFormState extends State<TransactionForm> {
           ElevatedButton(
             onPressed: () {
               if (_amountController.text.isEmpty || _selectedCategoryId == null || _selectedDate == null) return;
-              
+
               // [QUAN TRỌNG] Phải xóa hết dấu phẩy trước khi đổi sang số (1,000,000 -> 1000000)
               String cleanAmount = _amountController.text.replaceAll(',', '');
               double finalAmount = double.tryParse(cleanAmount) ?? 0;
