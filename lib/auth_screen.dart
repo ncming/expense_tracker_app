@@ -12,7 +12,7 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController(); // [MỚI] Controller xác nhận mật khẩu
+  final _confirmPasswordController = TextEditingController(); //Controller xác nhận mật khẩu
 
   bool _isLogin = true; //switch login & reg
   bool _isLoading = false;
@@ -20,7 +20,7 @@ class _AuthScreenState extends State<AuthScreen> {
   void _submitAuthForm() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
-    final confirmPassword = _confirmPasswordController.text.trim(); // [MỚI] Lấy giá trị xác nhận
+    final confirmPassword = _confirmPasswordController.text.trim(); //Lấy giá trị xác nhận
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Chưa nhập email và mật khẩu.")));
@@ -87,7 +87,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   controller: _emailController,
                   decoration: const InputDecoration(labelText: "Email", prefixIcon: Icon(Icons.email)),
                   keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next, // [MỚI] Enter -> Next
+                  textInputAction: TextInputAction.next,
                 ),
                 
                 // --- PASSWORD ---
@@ -108,7 +108,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     controller: _confirmPasswordController,
                     decoration: const InputDecoration(labelText: "Xác nhận mật khẩu", prefixIcon: Icon(Icons.lock_outline)),
                     obscureText: true,
-                    textInputAction: TextInputAction.done, // [MỚI] Enter -> Done
+                    textInputAction: TextInputAction.done,
                     onSubmitted: (_) => _submitAuthForm(), // Đăng ký ngay nếu bấm Enter
                   ),
 
