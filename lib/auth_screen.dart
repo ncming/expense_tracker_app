@@ -16,6 +16,14 @@ class _AuthScreenState extends State<AuthScreen> {
 
   bool _isLogin = true; //switch login & reg
   bool _isLoading = false;
+// Hàm này sẽ được gọi khi bấm nút Login/Register
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   void _submitAuthForm() async {
     final email = _emailController.text.trim();

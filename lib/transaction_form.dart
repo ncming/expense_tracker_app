@@ -23,6 +23,13 @@ class _TransactionFormState extends State<TransactionForm> {
   DateTime? _selectedDate;
   String? _selectedCategoryId; // Lưu ID thay vì Enum
   bool _isExpense = true;
+// Hàm này sẽ được gọi khi bấm nút Lưu
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {

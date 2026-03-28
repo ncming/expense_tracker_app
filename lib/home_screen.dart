@@ -19,8 +19,8 @@ class _MyHomePageState extends State<MyHomePage> {
   DateTime _selectedDay = DateTime.now();
   int _selectedIndex = 0; //Để quản lý Tabbar
 
-  //Lấy ID thật của người dùng đang đăng nhập
-  final String userId = FirebaseAuth.instance.currentUser!.uid;
+  //Lấy ID thật của người dùng đang đăng nhập (với null safety)
+  late final String userId;
 
   // Danh sách Icon có sẵn để chọn khi tạo danh mục
   final List<IconData> _availableIcons = [
@@ -42,87 +42,127 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (userId.isEmpty) {
+      // Nếu không có currentUser, đăng xuất và quay lại Auth Screen
+      Future.microtask(() {
+        FirebaseAuth.instance.signOut();
+      });
+      return;
+    }
     _checkAndCreateDefaultCategories();
   }
 
   //Tự động tạo danh mục mẫu nếu database trống
   void _checkAndCreateDefaultCategories() async {
-    final catRef = FirebaseFirestore.instance.collection('users').doc(userId).collection('categories');
-    final snapshot = await catRef.get();
+    try {
+      debugPrint('[HomeScreen] Kiểm tra danh mục mặc định...');
+      final catRef = FirebaseFirestore.instance.collection('users').doc(userId).collection('categories');
+      final snapshot = await catRef.get();
 
-    if (snapshot.docs.isEmpty) {
-      // --- 1. NHÓM CHI TIÊU (EXPENSE) ---
-      await catRef.add(CategoryItem(id: '', name: 'Ăn uống', iconCode: Icons.fastfood.codePoint, colorValue: Colors.orange.value, isExpense: true).toMap());
-      await catRef.add(CategoryItem(id: '', name: 'Chi tiêu hàng ngày', iconCode: Icons.shopping_cart.codePoint, colorValue: Colors.cyan.value, isExpense: true).toMap());
-      await catRef.add(CategoryItem(id: '', name: 'Quần áo', iconCode: Icons.checkroom.codePoint, colorValue: Colors.pink.value, isExpense: true).toMap());
-      await catRef.add(CategoryItem(id: '', name: 'Mỹ phẩm', iconCode: Icons.face.codePoint, colorValue: Colors.purpleAccent.value, isExpense: true).toMap());
-      await catRef.add(CategoryItem(id: '', name: 'Phí giao lưu', iconCode: Icons.local_bar.codePoint, colorValue: Colors.lime.shade800.value, isExpense: true).toMap());
-      await catRef.add(CategoryItem(id: '', name: 'Y tế', iconCode: Icons.medical_services.codePoint, colorValue: Colors.red.value, isExpense: true).toMap());
-      await catRef.add(CategoryItem(id: '', name: 'Giáo dục', iconCode: Icons.school.codePoint, colorValue: Colors.blue.shade900.value, isExpense: true).toMap());
-      await catRef.add(CategoryItem(id: '', name: 'Tiền điện nước', iconCode: Icons.lightbulb.codePoint, colorValue: Colors.amber.shade800.value, isExpense: true).toMap());
-      await catRef.add(CategoryItem(id: '', name: 'Phí liên lạc', iconCode: Icons.phone_android.codePoint, colorValue: Colors.indigo.value, isExpense: true).toMap());
-      await catRef.add(CategoryItem(id: '', name: 'Tiền nhà', iconCode: Icons.home.codePoint, colorValue: Colors.brown.value, isExpense: true).toMap());
-      await catRef.add(CategoryItem(id: '', name: 'Di chuyển', iconCode: Icons.directions_bus.codePoint, colorValue: Colors.blue.value, isExpense: true).toMap());
+      if (snapshot.docs.isEmpty) {
+        debugPrint('[HomeScreen] Database trống, tạo danh mục mặc định...');
+        // 1. Nhóm chi tiêu (chi)
+        await catRef.add(CategoryItem(id: '', name: 'Ăn uống', iconCode: Icons.fastfood.codePoint, colorValue: Colors.orange.value, isExpense: true).toMap());
+        await catRef.add(CategoryItem(id: '', name: 'Chi tiêu hàng ngày', iconCode: Icons.shopping_cart.codePoint, colorValue: Colors.cyan.value, isExpense: true).toMap());
+        await catRef.add(CategoryItem(id: '', name: 'Quần áo', iconCode: Icons.checkroom.codePoint, colorValue: Colors.pink.value, isExpense: true).toMap());
+        await catRef.add(CategoryItem(id: '', name: 'Mỹ phẩm', iconCode: Icons.face.codePoint, colorValue: Colors.purpleAccent.value, isExpense: true).toMap());
+        await catRef.add(CategoryItem(id: '', name: 'Phí giao lưu', iconCode: Icons.local_bar.codePoint, colorValue: Colors.lime.shade800.value, isExpense: true).toMap());
+        await catRef.add(CategoryItem(id: '', name: 'Y tế', iconCode: Icons.medical_services.codePoint, colorValue: Colors.red.value, isExpense: true).toMap());
+        await catRef.add(CategoryItem(id: '', name: 'Giáo dục', iconCode: Icons.school.codePoint, colorValue: Colors.blue.shade900.value, isExpense: true).toMap());
+        await catRef.add(CategoryItem(id: '', name: 'Tiền điện nước', iconCode: Icons.lightbulb.codePoint, colorValue: Colors.amber.shade800.value, isExpense: true).toMap());
+        await catRef.add(CategoryItem(id: '', name: 'Phí liên lạc', iconCode: Icons.phone_android.codePoint, colorValue: Colors.indigo.value, isExpense: true).toMap());
+        await catRef.add(CategoryItem(id: '', name: 'Tiền nhà', iconCode: Icons.home.codePoint, colorValue: Colors.brown.value, isExpense: true).toMap());
+        await catRef.add(CategoryItem(id: '', name: 'Di chuyển', iconCode: Icons.directions_bus.codePoint, colorValue: Colors.blue.value, isExpense: true).toMap());
 
-      // --- 2. NHÓM THU NHẬP (INCOME) ---
-      await catRef.add(CategoryItem(id: '', name: 'Tiền lương', iconCode: Icons.attach_money.codePoint, colorValue: Colors.green.shade800.value, isExpense: false).toMap());
-      await catRef.add(CategoryItem(id: '', name: 'Tiền phụ cấp', iconCode: Icons.account_balance_wallet.codePoint, colorValue: Colors.lightGreen.value, isExpense: false).toMap());
-      await catRef.add(CategoryItem(id: '', name: 'Tiền thưởng', iconCode: Icons.card_giftcard.codePoint, colorValue: Colors.amber.value, isExpense: false).toMap());
-      await catRef.add(CategoryItem(id: '', name: 'Đầu tư', iconCode: Icons.trending_up.codePoint, colorValue: Colors.deepPurple.value, isExpense: false).toMap());
-      await catRef.add(CategoryItem(id: '', name: 'Thu nhập phụ', iconCode: Icons.monetization_on.codePoint, colorValue: Colors.teal.value, isExpense: false).toMap());
-      await catRef.add(CategoryItem(id: '', name: 'Thu nhập tạm thời', iconCode: Icons.hourglass_bottom.codePoint, colorValue: Colors.blueGrey.value, isExpense: false).toMap());
+        // 2. Nhóm thu nhập (thu)
+        await catRef.add(CategoryItem(id: '', name: 'Tiền lương', iconCode: Icons.attach_money.codePoint, colorValue: Colors.green.shade800.value, isExpense: false).toMap());
+        await catRef.add(CategoryItem(id: '', name: 'Tiền phụ cấp', iconCode: Icons.account_balance_wallet.codePoint, colorValue: Colors.lightGreen.value, isExpense: false).toMap());
+        await catRef.add(CategoryItem(id: '', name: 'Tiền thưởng', iconCode: Icons.card_giftcard.codePoint, colorValue: Colors.amber.value, isExpense: false).toMap());
+        await catRef.add(CategoryItem(id: '', name: 'Đầu tư', iconCode: Icons.trending_up.codePoint, colorValue: Colors.deepPurple.value, isExpense: false).toMap());
+        await catRef.add(CategoryItem(id: '', name: 'Thu nhập phụ', iconCode: Icons.monetization_on.codePoint, colorValue: Colors.teal.value, isExpense: false).toMap());
+        await catRef.add(CategoryItem(id: '', name: 'Thu nhập tạm thời', iconCode: Icons.hourglass_bottom.codePoint, colorValue: Colors.blueGrey.value, isExpense: false).toMap());
+        debugPrint('[HomeScreen] Đã tạo xong danh mục mặc định');
+      } else {
+        debugPrint('[HomeScreen] Danh mục đã tồn tại: ${snapshot.docs.length} items');
+      }
+    } catch (e) {
+      debugPrint('[HomeScreen] Lỗi tạo danh mục mặc định: $e');
     }
   }
 
   //Cập nhật hàm thêm: Gửi dữ liệu lên Firebase
   void _addNewTransaction(double amount, DateTime chosenDate, String categoryId, String note, bool isExpense) {
-    final newTx = Transaction(
-      id: '',
-      amount: amount,
-      date: chosenDate,
-      categoryId: categoryId, // Lưu ID string
-      note: note,
-      isExpense: isExpense,
-    );
+    try {
+      debugPrint('[HomeScreen] Thêm giao dịch: amount=$amount, date=$chosenDate, category=$categoryId, isExpense=$isExpense');
+      final newTx = Transaction(
+        id: '',
+        amount: amount,
+        date: chosenDate,
+        categoryId: categoryId, // Lưu ID chuỗi
+        note: note,
+        isExpense: isExpense,
+      );
 
-    // Gửi lên Cloud Firestore
-    FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
-        .add(newTx.toMap());
+      // Gửi lên Cloud Firestore
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('transactions')
+          .add(newTx.toMap());
 
-    // Cập nhật giao diện lịch
-    setState(() {
-      _selectedDay = chosenDate;
-      _focusedDay = chosenDate;
-    });
+      // Cập nhật giao diện lịch
+      setState(() {
+        _selectedDay = chosenDate;
+        _focusedDay = chosenDate;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã thêm giao dịch!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red));
+      }
+      debugPrint('[HomeScreen] Lỗi thêm giao dịch: $e');
+    }
   }
 
   //Hàm cập nhật giao dịch 
   void _updateTransaction(String txId, double amount, DateTime chosenDate, String categoryId, String note, bool isExpense) {
-    FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
-        .doc(txId)
-        .update({
-          'amount': amount,
-          'date': chosenDate.toIso8601String(),
-          'categoryId': categoryId,
-          'note': note,
-          'isExpense': isExpense,
-        });
+    try {
+      debugPrint('[HomeScreen] Cập nhật giao dịch: txId=$txId, amount=$amount, date=$chosenDate');
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('transactions')
+          .doc(txId)
+          .update({
+            'amount': amount,
+            'date': chosenDate.toIso8601String(),
+            'categoryId': categoryId,
+            'note': note,
+            'isExpense': isExpense,
+          });
 
-    setState(() {
-      _selectedDay = chosenDate; // Nhảy lịch tới ngày vừa sửa
-    });
+      setState(() {
+        _selectedDay = chosenDate; // Nhảy lịch tới ngày vừa sửa
+      });
 
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã cập nhật giao dịch!')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã cập nhật giao dịch!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi cập nhật: $e'), backgroundColor: Colors.red));
+      }
+      debugPrint('[HomeScreen] Lỗi cập nhật giao dịch: $e');
+    }
   }
 
-  //Hiển thị Form Thêm/Sửa Giao dịch
+  //Hiển thị form thêm/sửa giao dịch
   void _showTransactionForm(BuildContext ctx, List<CategoryItem> categories, {Transaction? existingTx}) {
+    debugPrint('[HomeScreen] Mở form giao dịch: isEdit=${existingTx != null}');
     showModalBottomSheet(
       context: ctx,
       isScrollControlled: true,
@@ -150,22 +190,31 @@ class _MyHomePageState extends State<MyHomePage> {
 
   //Hàm xóa chi thu trên Firebase
   void _deleteTransaction(String id) {
-    FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('transactions')
-        .doc(id)
-        .delete();
+    try {
+      debugPrint('[HomeScreen] Xóa giao dịch: $id');
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('transactions')
+          .doc(id)
+          .delete();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đã xóa!')),
-    );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa giao dịch!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi xóa: $e'), backgroundColor: Colors.red));
+      }
+      debugPrint('[HomeScreen] Lỗi xóa giao dịch: $e');
+    }
   }
 
   // --- LOGIC QUẢN LÝ DANH MỤC ---
 
-  // Hàm Thêm hoặc Sửa danh mục
+  // Hàm thêm hoặc sửa danh mục
   void _addOrEditCategory({CategoryItem? item, required bool isExpense}) {
+    debugPrint('[HomeScreen] Mở form danh mục: isEdit=${item != null}, isExpense=$isExpense');
     final nameController = TextEditingController(text: item?.name ?? '');
     IconData selectedIcon = item != null ? IconData(item.iconCode, fontFamily: 'MaterialIcons') : (isExpense ? Icons.fastfood : Icons.attach_money);
     Color selectedColor = item != null ? Color(item.colorValue) : (isExpense ? Colors.red : Colors.green);
@@ -182,6 +231,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Tên danh mục')),
+                  // Note: nameController will be disposed when the dialog is closed
                   const SizedBox(height: 20),
                   const Text('Chọn Biểu tượng:', style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
@@ -219,25 +269,49 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+              TextButton(
+                onPressed: () {
+                  nameController.dispose();
+                  Navigator.pop(ctx);
+                },
+                child: const Text('Hủy'),
+              ),
               ElevatedButton(
                 onPressed: () {
-                  if (nameController.text.isEmpty) return;
-                  final data = CategoryItem(
-                    id: '',
-                    name: nameController.text,
-                    iconCode: selectedIcon.codePoint,
-                    colorValue: selectedColor.value,
-                    isExpense: isExpense,
-                  ).toMap();
+                  try {
+                    if (nameController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập tên danh mục'), backgroundColor: Colors.red));
+                      return;
+                    }
+                    final data = CategoryItem(
+                      id: '',
+                      name: nameController.text,
+                      iconCode: selectedIcon.codePoint,
+                      colorValue: selectedColor.value,
+                      isExpense: isExpense,
+                    ).toMap();
 
-                  final colRef = FirebaseFirestore.instance.collection('users').doc(userId).collection('categories');
-                  if (item == null) {
-                    colRef.add(data);
-                  } else {
-                    colRef.doc(item.id).update(data);
+                    final colRef = FirebaseFirestore.instance.collection('users').doc(userId).collection('categories');
+                    if (item == null) {
+                      colRef.add(data);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã thêm danh mục!')));
+                      }
+                    } else {
+                      colRef.doc(item.id).update(data);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã cập nhật danh mục!')));
+                      }
+                    }
+                    nameController.dispose();
+                    Navigator.pop(ctx);
+                  } catch (e) {
+                    nameController.dispose();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red));
+                    }
+                    debugPrint('Error saving category: $e');
                   }
-                  Navigator.pop(ctx);
                 },
                 child: const Text('Lưu'),
               ),
@@ -249,7 +323,18 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _deleteCategory(String id) {
-    FirebaseFirestore.instance.collection('users').doc(userId).collection('categories').doc(id).delete();
+    try {
+      debugPrint('[HomeScreen] Xóa danh mục: $id');
+      FirebaseFirestore.instance.collection('users').doc(userId).collection('categories').doc(id).delete();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa danh mục!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi xóa danh mục: $e'), backgroundColor: Colors.red));
+      }
+      debugPrint('[HomeScreen] Lỗi xóa danh mục: $e');
+    }
   }
 
   //Hàm mở Popup chọn Tháng/Năm cho Lịch chính
@@ -275,13 +360,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
   //Hàm chuyển tab
   void _onItemTapped(int index) {
+    debugPrint('[HomeScreen] Tab được chọn: $index');
     setState(() {
       _selectedIndex = index;
     });
   }
   
-  // Hàm Đăng Xuất (Thêm vào Appbar hoặc Cài đặt)
+  // Hàm đăng xuất
   void _logout() {
+    debugPrint('[HomeScreen] Hiển thị dialog đăng xuất');
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -341,8 +428,8 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         );
 
-        // --- XÂY DỰNG TAB LỊCH ---
-        // STREAM BUILDER THỨ 2: Lấy dữ liệu Giao dịch
+        // Xây dựng tab lịch
+        // StreamBuilder thứ 2: Lấy dữ liệu giao dịch
         final calendarTab = StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('users')
@@ -352,9 +439,11 @@ class _MyHomePageState extends State<MyHomePage> {
           builder: (context, txSnapshot) {
 
             if (txSnapshot.connectionState == ConnectionState.waiting) {
+              debugPrint('[HomeScreen] Đang tải giao dịch...');
               return const Center(child: CircularProgressIndicator());
             }
             if (txSnapshot.hasError) {
+              debugPrint('[HomeScreen] Lỗi tải giao dịch: ${txSnapshot.error}');
               return Center(child: Text("Lỗi: ${txSnapshot.error}"));
             }
 
@@ -362,13 +451,15 @@ class _MyHomePageState extends State<MyHomePage> {
             final allTransactions = txSnapshot.data!.docs.map((doc) {
               return Transaction.fromMap(doc.data() as Map<String, dynamic>, doc.id);
             }).toList();
+            debugPrint('[HomeScreen] Tổng giao dịch: ${allTransactions.length}');
 
             // Lọc dữ liệu theo ngày đang chọn
             final selectedTransactions = allTransactions.where((tx) {
               return isSameDay(tx.date, _selectedDay);
             }).toList();
+            debugPrint('[HomeScreen] Giao dịch ngày ${_selectedDay.toIso8601String()}: ${selectedTransactions.length}');
 
-            //TÍNH TOÁN TỔNG THU - CHI TRONG NGÀY
+            //Tính toán tổng thu - chi trong ngày
             double dailyIncome = 0;
             double dailyExpense = 0;
 
@@ -458,7 +549,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           itemCount: selectedTransactions.length,
                           itemBuilder: (ctx, index) {
                             final tx = selectedTransactions[index];
-                            // [QUAN TRỌNG] Tra cứu Category từ Map
+                            // Tra cứu Category từ Map
                             final cat = categoryMap[tx.categoryId];
 
                             //Bọc Dismissible để vuốt xóa
@@ -472,6 +563,19 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: const Icon(Icons.delete, color: Colors.white),
                               ),
                               direction: DismissDirection.endToStart,
+                              confirmDismiss: (direction) async {
+                                return await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('Xóa giao dịch?'),
+                                    content: const Text('Bạn chắc chắn muốn xóa giao dịch này không?'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+                                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Xóa', style: TextStyle(color: Colors.red))),
+                                    ],
+                                  ),
+                                ) ?? false;
+                              },
                               onDismissed: (direction) {
                                 _deleteTransaction(tx.id);
                               },
@@ -523,19 +627,20 @@ class _MyHomePageState extends State<MyHomePage> {
           }
         );
 
-        // Danh sách màn hình cho BottomBar
+        // Danh sách màn hình cho thanh điều hướng dưới cùng
         final List<Widget> widgetOptions = <Widget>[
           calendarTab,
           const Center(child: Text('Màn hình Báo cáo')),
           utilitiesTab, //Đã gán giao diện Tiện ích vào đây
           const Center(child: Text('Màn hình Cài đặt')),
         ];
+        debugPrint('[HomeScreen] Widget options initialized: ${widgetOptions.length} tabs');
 
         return Scaffold(
           appBar: AppBar(
             title: Text(_selectedIndex == 2 ? 'Quản lý Danh mục' : 'Sổ Thu Chi'),
             actions: [
-              if (_selectedIndex == 0) ...[
+              if (_selectedIndex == 0) ...[  // Tab lịch
                 IconButton(
                   icon: const Icon(Icons.calendar_month),
                   tooltip: 'Chọn tháng/năm',
@@ -554,7 +659,7 @@ class _MyHomePageState extends State<MyHomePage> {
           body: widgetOptions.elementAt(_selectedIndex),
 
           floatingActionButton: _selectedIndex == 2
-            // Nút thêm danh mục ở Tab Tiện ích
+            // Nút thêm danh mục ở tab tiện ích
             ? FloatingActionButton(
                 child: const Icon(Icons.add),
                 onPressed: () {
@@ -567,7 +672,7 @@ class _MyHomePageState extends State<MyHomePage> {
                    ));
                 },
               )
-            // Nút thêm thu chi ở Tab Lịch
+            // Nút thêm giao dịch ở tab lịch
             : (_selectedIndex == 0 ? FloatingActionButton(
                 tooltip: 'Thêm thu chi mới',
                 child: const Icon(Icons.add),
@@ -576,6 +681,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
           bottomNavigationBar: BottomNavigationBar(
             type: BottomNavigationBarType.fixed,
+            onTap: (index) {
+              debugPrint('[HomeScreen] Chuyển tab: $index');
+              _onItemTapped(index);
+            },
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Lịch'),
               BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Báo cáo'),
@@ -583,14 +692,13 @@ class _MyHomePageState extends State<MyHomePage> {
               BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Cài đặt'),
             ],
             currentIndex: _selectedIndex,
-            onTap: _onItemTapped,
           ),
         );
       },
     );
   }
 
-  // Widget hiển thị danh sách trong Tab Tiện ích
+  // Widget hiển thị danh sách danh mục
   Widget _buildCategoryList(List<CategoryItem> items, bool isExpense) {
     if (items.isEmpty) return const Center(child: Text("Chưa có danh mục nào"));
     return ListView.builder(
@@ -619,6 +727,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _deleteConfirm(String id) {
+    debugPrint('[HomeScreen] Hiển thị dialog xác nhận xóa danh mục');
     showDialog(context: context, builder: (ctx) => AlertDialog(
       title: const Text("Xóa danh mục?"),
       content: const Text("Bạn có chắc chắn muốn xóa không?"),
