@@ -28,7 +28,7 @@ class UtilitiesTabState extends State<UtilitiesTab> {
     Colors.cyan, Colors.lime, Colors.deepPurple, Colors.blueGrey
   ];
 
-  // [SỬA] Bỏ dấu gạch dưới để hàm này thành public
+  //Bỏ dấu gạch dưới để hàm này thành public
   void addOrEditCategory({CategoryItem? item, required bool isExpense}) {
     final nameController = TextEditingController(text: item?.name ?? '');
     IconData selectedIcon = item != null ? IconData(item.iconCode, fontFamily: 'MaterialIcons') : (isExpense ? Icons.fastfood : Icons.attach_money);
@@ -147,7 +147,7 @@ class UtilitiesTabState extends State<UtilitiesTab> {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // [SỬA] Gọi hàm addOrEditCategory mới (không có dấu _)
+                //Gọi hàm addOrEditCategory mới
                 IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => addOrEditCategory(item: item, isExpense: item.isExpense)),
                 IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteConfirm(item.id)),
               ],
