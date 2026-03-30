@@ -18,7 +18,7 @@ class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0; // Quản lý Tabbar
   final String userId = FirebaseAuth.instance.currentUser!.uid;
 
-  // GlobalKey giúp HomeScreen "gọi đàm" được với các hàm bên trong CalendarTab và UtilitiesTab
+  // GlobalKey giúp HomeScreen liên kết được với các hàm bên trong CalendarTab và UtilitiesTab
   final GlobalKey<CalendarTabState> _calendarTabKey = GlobalKey<CalendarTabState>();
   final GlobalKey<UtilitiesTabState> _utilitiesTabKey = GlobalKey<UtilitiesTabState>(); // [MỚI] Key cho tiện ích
 
@@ -69,7 +69,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: widgetOptions.elementAt(_selectedIndex),
       
-      // [CẬP NHẬT] Xử lý Nút (+) cho cả Tab 0 (Lịch) và Tab 2 (Tiện ích)
+      // Xử lý Nút (+) cho cả Tab 0 (Lịch) và Tab 2 (Tiện ích)
       floatingActionButton: _selectedIndex == 0
         ? StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance.collection('users').doc(userId).collection('categories').snapshots(),
