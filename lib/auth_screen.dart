@@ -16,6 +16,8 @@ class _AuthScreenState extends State<AuthScreen> {
 
   bool _isLogin = true; //switch login & reg
   bool _isLoading = false;
+  bool _obscurePassword = true; //Ẩn hiện mật khẩu
+  bool _obscureConfirmPassword = true;
 // Hàm này sẽ được gọi khi bấm nút Login/Register
   @override
   void dispose() {
@@ -25,51 +27,147 @@ class _AuthScreenState extends State<AuthScreen> {
     super.dispose();
   }
 
+  // T-Kiểm tra định dạng email
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+    return emailRegex.hasMatch(email);
+  }
+
+  // T-Kiểm tra độ mạnh mật khẩu
+  String _validatePassword(String password) {
+    if (password.length < 8) {
+      return 'Mật khẩu phải có ít nhất 8 ký tự';
+    }
+    if (!password.contains(RegExp(r'[A-Z]'))) {
+      return 'Mật khẩu phải chứa ít nhất một chữ cái hoa';
+    }
+    if (!password.contains(RegExp(r'[a-z]'))) {
+      return 'Mật khẩu phải chứa ít nhất một chữ cái thường';
+    }
+    if (!password.contains(RegExp(r'[0-9]'))) {
+      return 'Mật khẩu phải chứa ít nhất một chữ số';
+    }
+    return '';
+  }
+
+
+
   void _submitAuthForm() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
-    final confirmPassword = _confirmPasswordController.text.trim(); //Lấy giá trị xác nhận
+    final confirmPassword = _confirmPasswordController.text.trim();
 
+    // T-Kiểm tra input không để trống
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Chưa nhập email và mật khẩu.")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Vui lòng điền đầy đủ email và mật khẩu."))
+      );
       return;
     }
 
-    //Kiểm tra mật khẩu xác nhận khi Đăng ký
-    if (!_isLogin && password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mật khẩu xác nhận không khớp!"), backgroundColor: Colors.red));
+    // T-Kiểm tra định dạng email
+    if (!_isValidEmail(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Email không hợp lệ. Ví dụ: user@example.com'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
+    }
+
+    // T-Kiểm tra độ mạnh mật khẩu khi đăng ký
+    if (!_isLogin) {
+      final passwordError = _validatePassword(password);
+      if (passwordError.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(passwordError),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
+
+      // T-Kiểm tra mật khẩu xác nhận
+      if (password != confirmPassword) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Mật khẩu xác nhận không khớp!"),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
     }
 
     setState(() => _isLoading = true);
 
     try {
       if (_isLogin) {
-        //Login
-        await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: password);
+        // T-Login
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
       } else {
-        //register
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: password);
+        // T-Register
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
       }
-      // AuthWrapper tu chuyen trang khi dang nhap thanh cong
+      // AuthWrapper tự chuyển trang khi đăng nhập thành công
     } on FirebaseAuthException catch (e) {
-     // In mã lỗi ra để biết đường sửa
-      String message = "Lỗi: ${e.code} - ${e.message}";
-      if (e.code == 'weak-password') message = 'Mật khẩu yếu (cần ít nhất 6 ký tự).';
-      else if (e.code == 'email-already-in-use') message = 'Email này đã được sử dụng.';
-      else if (e.code == 'user-not-found') message = 'Không tìm thấy tài khoản.';
-      else if (e.code == 'wrong-password') message = 'Sai mật khẩu.';
-      else if (e.code == 'invalid-email') message = 'Email không hợp lệ.';
+      // T-Xử lý lỗi bảo mật từ Firebase
+      String message = "Lỗi: ${e.code}";
+      if (e.code == 'weak-password') {
+        message = 'Mật khẩu yếu (cần ít nhất 6 ký tự).';
+      } else if (e.code == 'email-already-in-use') {
+        message = 'Email này đã được sử dụng.';
+      } else if (e.code == 'user-not-found') {
+        message = 'Không tìm thấy tài khoản.';
+      } else if (e.code == 'wrong-password') {
+        message = 'Sai mật khẩu.';
+      } else if (e.code == 'invalid-email') {
+        message = 'Email không hợp lệ.';
+      } else if (e.code == 'too-many-requests') {
+        message = 'Quá nhiều lần thử. Vui lòng thử lại sau.';
+      } else if (e.code == 'operation-not-allowed') {
+        message = 'Chức năng này hiện không khả dụng.';
+      } else if (e.code == 'invalid-credential') {
+        message = 'Thông tin xác thực không hợp lệ.';
+      }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: Không thể kết nối. Vui lòng kiểm tra mạng.'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        // T-Xóa hay bảo vệ dữ liệu nhạy cảm
+        if (_isLogin) {
+          _passwordController.clear();
+        }
+      }
     }
   }
 
@@ -85,60 +183,105 @@ class _AuthScreenState extends State<AuthScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.account_balance_wallet, size: 80, color: Colors.blueGrey.shade700),
+                Icon(_isLogin ? Icons.login : Icons.app_registration, size: 80, color: Colors.blueGrey.shade700),
                 const SizedBox(height: 10),
-                Text(_isLogin ? "Login" : "Register", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                Text(_isLogin ? "Đăng Nhập" : "Đăng Ký", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 20),
                 
                 // --- EMAIL ---
                 TextField(
                   controller: _emailController,
-                  decoration: const InputDecoration(labelText: "Email", prefixIcon: Icon(Icons.email)),
+                  enabled: !_isLoading,
+                  decoration: InputDecoration(
+                    labelText: "Email",
+                    prefixIcon: const Icon(Icons.email),
+                    helperText: "Nhập email hợp lệ (ví dụ: user@example.com)",
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                 ),
+                const SizedBox(height: 16),
                 
                 // --- PASSWORD ---
                 TextField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(labelText: "Mật khẩu", prefixIcon: Icon(Icons.lock)),
-                  obscureText: true,
-                  //Nếu login thì Enter -> Done, nếu Register thì Enter -> Next
+                  enabled: !_isLoading,
+                  decoration: InputDecoration(
+                    labelText: "Mật khẩu",
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    ),
+                    helperText: !_isLogin ? 'Tối thiểu 8 ký tự, chứa chữ hoa, chữ thường & số' : null,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  obscureText: _obscurePassword,
                   textInputAction: _isLogin ? TextInputAction.done : TextInputAction.next,
+                  onChanged: (_) => setState(() {}), // Cập nhật yêu cầu mật khẩu khi nhập
                   onSubmitted: (_) {
-                    if (_isLogin) _submitAuthForm(); // Đăng nhập ngay nếu bấm Enter
+                    if (_isLogin) _submitAuthForm(); 
                   },
                 ),
+                const SizedBox(height: 16),
 
-                //--- CONFIRM PASSWORD (Chỉ hiện khi Đăng ký) ---
-                if (!_isLogin)
+                // --- CONFIRM PASSWORD (Chỉ hiện khi Đăng ký) ---
+                if (!_isLogin) ...[
                   TextField(
                     controller: _confirmPasswordController,
-                    decoration: const InputDecoration(labelText: "Xác nhận mật khẩu", prefixIcon: Icon(Icons.lock_outline)),
-                    obscureText: true,
+                    enabled: !_isLoading,
+                    decoration: InputDecoration(
+                      labelText: "Xác nhận mật khẩu",
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    obscureText: _obscureConfirmPassword,
                     textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _submitAuthForm(), // Đăng ký ngay nếu bấm Enter
+                    onSubmitted: (_) => _submitAuthForm(),
                   ),
+                  const SizedBox(height: 12),
+                  // T-Hiển thị yêu cầu mật khẩu khi đang đăng ký
+                  _buildPasswordRequirements(),
+                  const SizedBox(height: 16),
+                ],
 
-                const SizedBox(height: 20),
+                // --- BUTTON & LOADING ---
                 if (_isLoading)
                   const CircularProgressIndicator()
                 else
                   Column(
                     children: [
-                      ElevatedButton(
+                      ElevatedButton.icon(
                         onPressed: _submitAuthForm,
-                        style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-                        child: Text(_isLogin ? "Login" : "Register"),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(50),
+                          backgroundColor: Colors.blueGrey.shade700,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: Icon(_isLogin ? Icons.login : Icons.app_registration, color: Colors.white),
+                        label: Text(
+                          _isLogin ? "Đăng Nhập" : "Đăng Ký", 
+                          style: const TextStyle(fontSize: 16, color: Colors.white),
+                        ),
                       ),
+                      const SizedBox(height: 12),
                       TextButton(
                         onPressed: () {
                           setState(() {
                             _isLogin = !_isLogin;
-                            _confirmPasswordController.clear(); // Xóa ô xác nhận khi chuyển tab
+                            _confirmPasswordController.clear();
+                            _passwordController.clear();
                           });
                         },
-                        child: Text(_isLogin ? "Chưa có tài khoản? Đăng ký ngay" : "Đã có tài khoản? Đăng nhập"),
+                        child: Text(
+                          _isLogin ? "Chưa có tài khoản? Đăng ký ngay" : "Đã có tài khoản? Đăng nhập",
+                          style: TextStyle(color: Colors.blueGrey.shade700),
+                        ),
                       ),
                     ],
                   ),
@@ -146,6 +289,72 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // T-Widget hiển thị yêu cầu mật khẩu
+  Widget _buildPasswordRequirements() {
+    final password = _passwordController.text;
+    final hasMinLength = password.length >= 8;
+    final hasUpperCase = password.contains(RegExp(r'[A-Z]'));
+    final hasLowerCase = password.contains(RegExp(r'[a-z]'));
+    final hasDigit = password.contains(RegExp(r'[0-9]'));
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Yêu cầu mật khẩu:', style: TextStyle(fontWeight: FontWeight.bold)),
+          _buildRequirement('Tối thiểu 8 ký tự', hasMinLength),
+          _buildRequirement('Chữ cái hoa (A-Z)', hasUpperCase),
+          _buildRequirement('Chữ cái thường (a-z)', hasLowerCase),
+          _buildRequirement('Chữ số (0-9)', hasDigit),
+        ],
+      ),
+    );
+  }
+
+  // T-Requirement item
+  Widget _buildRequirement(String text, bool isMet) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isMet ? Colors.green : Colors.transparent,
+              border: Border.all(
+                color: isMet ? Colors.green : Colors.grey.shade300,
+                width: 2,
+              ),
+            ),
+            child: isMet
+              ? const Icon(
+                  Icons.check,
+                  size: 16,
+                  color: Colors.white,
+                )
+              : null,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: TextStyle(
+              color: isMet ? Colors.green : Colors.grey,
+              fontWeight: isMet ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ],
       ),
     );
   }

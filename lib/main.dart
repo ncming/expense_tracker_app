@@ -9,6 +9,9 @@ import 'package:firebase_auth/firebase_auth.dart'; //Thư viện xác thực
 // Import các file vừa chia
 import 'auth_screen.dart';
 import 'home_screen.dart';
+import 'settings_tab.dart';
+import 'report_tab.dart'; 
+
 
 void main() async {
   //Đảm bảo Flutter Binding được khởi tạo trước khi gọi code bất đồng bộ
@@ -30,6 +33,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false, // Tắt banner debug
       title: 'Sổ Thu Chi',
       theme: ThemeData(
         useMaterial3: true,
