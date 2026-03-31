@@ -22,6 +22,48 @@ class _MyHomePageState extends State<MyHomePage> {
   final GlobalKey<CalendarTabState> _calendarTabKey = GlobalKey<CalendarTabState>();
   final GlobalKey<UtilitiesTabState> _utilitiesTabKey = GlobalKey<UtilitiesTabState>(); // [MỚI] Key cho tiện ích
 
+  // --- [MỚI THÊM] Hàm khởi tạo: Chạy ngay khi mở ứng dụng ---
+  @override
+  void initState() {
+    super.initState();
+    _checkAndCreateDefaultCategories();
+  }
+
+  // --- Hàm tự động tạo danh mục mẫu cho tài khoản mới ---
+  void _checkAndCreateDefaultCategories() async {
+    final catRef = FirebaseFirestore.instance.collection('users').doc(userId).collection('categories');
+    final snapshot = await catRef.get();
+
+    // Chỉ tạo khi người dùng chưa có bất kỳ danh mục nào
+    if (snapshot.docs.isEmpty) {
+      final List<CategoryItem> defaultCategories = [
+        // ---------- DANH MỤC CHI TIÊU ----------
+        CategoryItem(id: '', name: 'Ăn uống', iconCode: Icons.fastfood.codePoint, colorValue: Colors.orange.value, isExpense: true),
+        CategoryItem(id: '', name: 'Di chuyển', iconCode: Icons.directions_bus.codePoint, colorValue: Colors.blue.value, isExpense: true),
+        CategoryItem(id: '', name: 'Mua sắm', iconCode: Icons.shopping_bag.codePoint, colorValue: Colors.pink.value, isExpense: true),
+        CategoryItem(id: '', name: 'Hóa đơn', iconCode: Icons.lightbulb.codePoint, colorValue: Colors.amber.value, isExpense: true),
+        CategoryItem(id: '', name: 'Sức khỏe', iconCode: Icons.medical_services.codePoint, colorValue: Colors.red.value, isExpense: true),
+        CategoryItem(id: '', name: 'Giải trí', iconCode: Icons.movie.codePoint, colorValue: Colors.deepPurple.value, isExpense: true),
+        CategoryItem(id: '', name: 'Cafe & Bạn bè', iconCode: Icons.local_cafe.codePoint, colorValue: Colors.brown.value, isExpense: true),
+
+        // ---------- DANH MỤC THU NHẬP ----------
+        CategoryItem(id: '', name: 'Tiền lương', iconCode: Icons.attach_money.codePoint, colorValue: Colors.green.shade700.value, isExpense: false),
+        CategoryItem(id: '', name: 'Tiền thưởng', iconCode: Icons.card_giftcard.codePoint, colorValue: Colors.teal.value, isExpense: false),
+        CategoryItem(id: '', name: 'Đầu tư', iconCode: Icons.trending_up.codePoint, colorValue: Colors.indigo.value, isExpense: false),
+      ];
+
+      // Dùng vòng lặp để đẩy toàn bộ danh sách mẫu lên Firebase
+      for (var cat in defaultCategories) {
+        await catRef.add(cat.toMap());
+      }
+      
+      // Báo cho giao diện biết để load lại sau khi đã thêm xong
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
   void _logout() {
     showDialog(
       context: context,
