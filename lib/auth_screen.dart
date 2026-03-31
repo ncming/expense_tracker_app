@@ -171,121 +171,163 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blueGrey,
-      body: Center(
-        child: Card(
-          margin: const EdgeInsets.all(20),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(_isLogin ? Icons.login : Icons.app_registration, size: 80, color: Colors.blueGrey.shade700),
-                const SizedBox(height: 10),
-                Text(_isLogin ? "Đăng Nhập" : "Đăng Ký", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 20),
-                
-                // --- EMAIL ---
-                TextField(
-                  controller: _emailController,
-                  enabled: !_isLoading,
-                  decoration: InputDecoration(
-                    labelText: "Email",
-                    prefixIcon: const Icon(Icons.email),
-                    helperText: "Nhập email hợp lệ (ví dụ: user@example.com)",
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                ),
-                const SizedBox(height: 16),
-                
-                // --- PASSWORD ---
-                TextField(
-                  controller: _passwordController,
-                  enabled: !_isLoading,
-                  decoration: InputDecoration(
-                    labelText: "Mật khẩu",
-                    prefixIcon: const Icon(Icons.lock),
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                    ),
-                    helperText: !_isLogin ? 'Tối thiểu 8 ký tự, chứa chữ hoa, chữ thường & số' : null,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  obscureText: _obscurePassword,
-                  textInputAction: _isLogin ? TextInputAction.done : TextInputAction.next,
-                  onChanged: (_) => setState(() {}), // Cập nhật yêu cầu mật khẩu khi nhập
-                  onSubmitted: (_) {
-                    if (_isLogin) _submitAuthForm(); 
-                  },
-                ),
-                const SizedBox(height: 16),
+  //Hàm gửi mail khôi phục mật khẩu
+  void _resetPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !_isValidEmail(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Vui lòng nhập email hợp lệ để đặt lại mật khẩu."))
+      );
+      return;
+    }
 
-                // --- CONFIRM PASSWORD (Chỉ hiện khi Đăng ký) ---
-                if (!_isLogin) ...[
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email:   email);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư của bạn."), backgroundColor: Colors.green)
+        );
+      }
+    } 
+
+    catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Lỗi: Không thể gửi email khôi phục."), backgroundColor: Colors.red)
+        );
+      }
+    }
+  }
+
+ @override
+  Widget build(BuildContext context) {
+    //Bọc GestureDetector để ẩn bàn phím khi chạm ra ngoài
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(), // Chạm ra ngoài để ẩn bàn phím
+      child: Scaffold(
+        backgroundColor: Colors.blueGrey,
+        body: Center(
+          child: Card(
+            margin: const EdgeInsets.all(20),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(_isLogin ? Icons.login : Icons.app_registration, size: 80, color: Colors.blueGrey.shade700),
+                  const SizedBox(height: 10),
+                  Text(_isLogin ? "Đăng Nhập" : "Đăng Ký", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 20),
+                  
+                  // --- EMAIL ---
                   TextField(
-                    controller: _confirmPasswordController,
+                    controller: _emailController,
                     enabled: !_isLoading,
                     decoration: InputDecoration(
-                      labelText: "Xác nhận mật khẩu",
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
-                      ),
+                      labelText: "Email",
+                      prefixIcon: const Icon(Icons.email),
+                      helperText: "Nhập email hợp lệ (ví dụ: user@example.com)",
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    obscureText: _obscureConfirmPassword,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _submitAuthForm(),
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
                   ),
-                  const SizedBox(height: 12),
-                  // T-Hiển thị yêu cầu mật khẩu khi đang đăng ký
-                  _buildPasswordRequirements(),
                   const SizedBox(height: 16),
-                ],
-
-                // --- BUTTON & LOADING ---
-                if (_isLoading)
-                  const CircularProgressIndicator()
-                else
-                  Column(
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: _submitAuthForm,
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(50),
-                          backgroundColor: Colors.blueGrey.shade700,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        icon: Icon(_isLogin ? Icons.login : Icons.app_registration, color: Colors.white),
-                        label: Text(
-                          _isLogin ? "Đăng Nhập" : "Đăng Ký", 
-                          style: const TextStyle(fontSize: 16, color: Colors.white),
-                        ),
+                  
+                  // --- PASSWORD ---
+                  TextField(
+                    controller: _passwordController,
+                    enabled: !_isLoading,
+                    decoration: InputDecoration(
+                      labelText: "Mật khẩu",
+                      prefixIcon: const Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
-                      const SizedBox(height: 12),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _isLogin = !_isLogin;
-                            _confirmPasswordController.clear();
-                            _passwordController.clear();
-                          });
-                        },
-                        child: Text(
-                          _isLogin ? "Chưa có tài khoản? Đăng ký ngay" : "Đã có tài khoản? Đăng nhập",
-                          style: TextStyle(color: Colors.blueGrey.shade700),
-                        ),
-                      ),
-                    ],
+                      helperText: !_isLogin ? 'Tối thiểu 8 ký tự, chứa chữ hoa, chữ thường & số' : null,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    obscureText: _obscurePassword,
+                    textInputAction: _isLogin ? TextInputAction.done : TextInputAction.next,
+                    onChanged: (_) => setState(() {}), // Cập nhật yêu cầu mật khẩu khi nhập
+                    onSubmitted: (_) {
+                      if (_isLogin) _submitAuthForm(); 
+                    },
                   ),
-              ],
+                  const SizedBox(height: 16),
+
+                  //Nút quên mật khẩu chỉ hiển thị khi đang ở chế độ đăng nhập
+                  if (_isLogin)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: _resetPassword,
+                        child: Text("Quên mật khẩu?", style: TextStyle(color: Colors.blueGrey.shade700, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+
+                  // --- CONFIRM PASSWORD (Chỉ hiện khi Đăng ký) ---
+                  if (!_isLogin) ...[
+                    TextField(
+                      controller: _confirmPasswordController,
+                      enabled: !_isLoading,
+                      decoration: InputDecoration(
+                        labelText: "Xác nhận mật khẩu",
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
+                          onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      obscureText: _obscureConfirmPassword,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _submitAuthForm(),
+                    ),
+                    const SizedBox(height: 12),
+                    // T-Hiển thị yêu cầu mật khẩu khi đang đăng ký
+                    _buildPasswordRequirements(),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // --- BUTTON & LOADING ---
+                  if (_isLoading)
+                    const CircularProgressIndicator()
+                  else
+                    Column(
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _submitAuthForm,
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(50),
+                            backgroundColor: Colors.blueGrey.shade700,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          icon: Icon(_isLogin ? Icons.login : Icons.app_registration, color: Colors.white),
+                          label: Text(
+                            _isLogin ? "Đăng Nhập" : "Đăng Ký", 
+                            style: const TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _isLogin = !_isLogin;
+                              _confirmPasswordController.clear();
+                              _passwordController.clear();
+                            });
+                          },
+                          child: Text(
+                            _isLogin ? "Chưa có tài khoản? Đăng ký ngay" : "Đã có tài khoản? Đăng nhập",
+                            style: TextStyle(color: Colors.blueGrey.shade700),
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ),
           ),
         ),
