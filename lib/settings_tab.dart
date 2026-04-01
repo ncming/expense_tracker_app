@@ -163,7 +163,6 @@ class _SettingsTabState extends State<SettingsTab> {
                   child: const Icon(Icons.person, color: Colors.blueGrey),
                 ),
                 title: Text(user?.email ?? 'Chưa đăng nhập', style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('Thành viên Sổ Thu Chi'),
               ),
               const Divider(height: 1),
               ListTile(

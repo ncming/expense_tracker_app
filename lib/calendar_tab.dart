@@ -28,7 +28,7 @@ class CalendarTabState extends State<CalendarTab> {
 
   void _updateTransaction(String txId, double amount, DateTime chosenDate, String categoryId, String note, bool isExpense) {
     FirebaseFirestore.instance.collection('users').doc(widget.userId).collection('transactions').doc(txId)
-        .update({'amount': amount, 'date': chosenDate.toIso8601String(), 'categoryId': categoryId, 'note': note, 'isExpense': isExpense});
+        .update({'amount': amount, 'date': Timestamp.fromDate(chosenDate), 'categoryId': categoryId, 'note': note, 'isExpense': isExpense});
     setState(() { _selectedDay = chosenDate; });
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã cập nhật giao dịch!')));
   }

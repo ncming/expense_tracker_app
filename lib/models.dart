@@ -1,5 +1,7 @@
 // 1. ĐỊNH NGHĨA DATA MODEL MỚI (DYNAMIC CATEGORY)
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 //Class đại diện cho Danh mục (Lưu trên Firebase thay vì Enum)
 class CategoryItem {
   final String id;
@@ -60,7 +62,7 @@ class Transaction {
   Map<String, dynamic> toMap() {
     return {
       'amount': amount,
-      'date': date.toIso8601String(), // Firebase lưu ngày dạng chuỗi
+      'date': Timestamp.fromDate(date), // Lưu dưới dạng Timestamp thay vì string
       'categoryId': categoryId,       // Lưu ID chuỗi
       'note': note,
       'isExpense': isExpense,
@@ -75,7 +77,7 @@ class Transaction {
       amount: (map['amount'] as num? ?? 0).toDouble(),
 
       // Nếu không có ngày thì lấy ngày hiện tại
-      date: map['date'] != null ? DateTime.parse(map['date']) : DateTime.now(),
+      date: map['date'] is Timestamp ? (map['date'] as Timestamp).toDate() : DateTime.now(),
 
       // Nếu không có categoryId thì để rỗng
       categoryId: map['categoryId'] ?? '',

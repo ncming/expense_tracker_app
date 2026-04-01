@@ -9,8 +9,6 @@ import 'package:firebase_auth/firebase_auth.dart'; //Thư viện xác thực
 // Import các file vừa chia
 import 'auth_screen.dart';
 import 'home_screen.dart';
-import 'settings_tab.dart';
-import 'report_tab.dart'; 
 
 
 void main() async {
