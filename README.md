@@ -4,7 +4,7 @@ A personal expense tracking application built with Flutter to help you manage yo
 
 ## 📋 Description
 
-"Sổ Chi Thu" is a mobile application that helps users track and manage their daily expenses. With a user-friendly interface and diverse features, the app supports recording transactions, viewing detailed reports, and analyzing financial trends.
+"No Money No Me" is a mobile application that helps users track and manage their daily expenses. With a user-friendly interface and diverse features, the app supports recording transactions, viewing detailed reports, and analyzing financial trends.
 
 ## ✨ Key Features
 
@@ -20,8 +20,12 @@ A personal expense tracking application built with Flutter to help you manage yo
 - **Framework**: Flutter
 - **Language**: Dart
 - **Backend**: Firebase (Authentication, Firestore)
-- **State Management**: Provider (or similar)
+- **State Management**: Provider
 - **UI Components**: Material Design
+- **Additional Libraries**:
+  - `intl`: Internationalization support
+  - `table_calendar`: Calendar widget for expense tracking
+  - `flutter_localizations`: Localization support
 
 ## 📱 Supported Platforms
 
@@ -34,8 +38,8 @@ A personal expense tracking application built with Flutter to help you manage yo
 
 ## 🚀 System Requirements
 
-- Flutter SDK: >= 3.0.0
-- Dart SDK: >= 3.0.0
+- Flutter SDK: >= 3.10.7
+- Dart SDK: >= 3.10.7
 - Android Studio / VS Code with Flutter extension
 - Firebase account (for authentication and database)
 
@@ -43,8 +47,8 @@ A personal expense tracking application built with Flutter to help you manage yo
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/so-chi-thu.git
-   cd so-chi-thu
+   git clone https://github.com/your-username/no-money-no-me.git
+   cd no-money-no-me
    ```
 
 2. **Install dependencies:**
