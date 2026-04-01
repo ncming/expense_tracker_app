@@ -11,6 +11,23 @@ class SettingsTab extends StatefulWidget {
 class _SettingsTabState extends State<SettingsTab> {
   final user = FirebaseAuth.instance.currentUser;
 
+  // Hàm kiểm tra độ mạnh mật khẩu (tương tự auth_screen)
+  String _validatePassword(String password) {
+    if (password.length < 8) {
+      return 'Mật khẩu phải có ít nhất 8 ký tự';
+    }
+    if (!password.contains(RegExp(r'[A-Z]'))) {
+      return 'Mật khẩu phải chứa ít nhất một chữ cái hoa';
+    }
+    if (!password.contains(RegExp(r'[a-z]'))) {
+      return 'Mật khẩu phải chứa ít nhất một chữ cái thường';
+    }
+    if (!password.contains(RegExp(r'[0-9]'))) {
+      return 'Mật khẩu phải chứa ít nhất một chữ số';
+    }
+    return '';
+  }
+
   // --- HÀM HIỂN THỊ POPUP ĐỔI MẬT KHẨU TRỰC TIẾP ---
   void _showChangePasswordDialog() {
     final currentPasswordController = TextEditingController();
@@ -19,6 +36,10 @@ class _SettingsTabState extends State<SettingsTab> {
     
     bool isLoading = false;
     String? errorMessage;
+    bool isLengthValid = false;
+    bool hasUppercase = false;
+    bool hasLowercase = false;
+    bool hasNumber = false;
 
     showDialog(
       context: context,
@@ -52,7 +73,26 @@ class _SettingsTabState extends State<SettingsTab> {
                       labelText: 'Mật khẩu mới',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.lock_reset),
+                      helperText: '8 ký tự, chữ hoa, chữ thường và số',
                     ),
+                    onChanged: (value) {
+                      setStatePopup(() {
+                        isLengthValid = value.length >= 8;
+                        hasUppercase = value.contains(RegExp(r'[A-Z]'));
+                        hasLowercase = value.contains(RegExp(r'[a-z]'));
+                        hasNumber = value.contains(RegExp(r'[0-9]'));
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildCheckRow(isLengthValid, 'Tối thiểu 8 ký tự'),
+                      _buildCheckRow(hasUppercase, 'Chứa chữ hoa'),
+                      _buildCheckRow(hasLowercase, 'Chứa chữ thường'),
+                      _buildCheckRow(hasNumber, 'Chứa chữ số'),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -86,8 +126,10 @@ class _SettingsTabState extends State<SettingsTab> {
                     setStatePopup(() => errorMessage = "Mật khẩu mới không khớp nhau.");
                     return;
                   }
-                  if (newPass.length < 6) {
-                    setStatePopup(() => errorMessage = "Mật khẩu mới phải từ 6 ký tự trở lên.");
+
+                  final pwdError = _validatePassword(newPass);
+                  if (pwdError.isNotEmpty) {
+                    setStatePopup(() => errorMessage = pwdError);
                     return;
                   }
 
@@ -138,6 +180,19 @@ class _SettingsTabState extends State<SettingsTab> {
           );
         }
       ),
+    );
+  }
+
+  Widget _buildCheckRow(bool ok, String text) {
+    return Row(
+      children: [
+        Icon(ok ? Icons.check_circle : Icons.radio_button_unchecked,
+          size: 16,
+          color: ok ? Colors.green : Colors.grey,
+        ),
+        const SizedBox(width: 6),
+        Text(text, style: TextStyle(fontSize: 12, color: ok ? Colors.green : Colors.grey)),
+      ],
     );
   }
 
