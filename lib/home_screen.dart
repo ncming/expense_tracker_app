@@ -6,6 +6,8 @@ import 'models.dart';
 // Import các tab 
 import 'calendar_tab.dart';
 import 'utilities_tab.dart';
+import 'settings_tab.dart'; // Import tab cài đặt mới
+import 'report_tab.dart'; // Thêm dòng này
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -89,9 +91,9 @@ class _MyHomePageState extends State<MyHomePage> {
     // Danh sách các màn hình
     final List<Widget> widgetOptions = <Widget>[
       CalendarTab(key: _calendarTabKey, userId: userId), // Tab 0
-      const Center(child: Text('Màn hình Báo cáo')),     // Tab 1
+      ReportTab(userId: userId),     // Tab 1
       UtilitiesTab(key: _utilitiesTabKey, userId: userId), // Tab 2: Gắn key vào đây
-      const Center(child: Text('Màn hình Cài đặt')),     // Tab 3
+      const SettingsTab(),     // Tab 3
     ];
 
     return Scaffold(
