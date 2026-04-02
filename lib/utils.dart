@@ -1,16 +1,42 @@
 import 'package:flutter/material.dart'; //để dùng Color và ChangeNotifier
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; //Thư viện firesotre
 
 //CLASS THEME PROVIDER
 // Class này giúp quản lý trạng thái màu sắc chủ đạo của ứng dụng
 class ThemeProvider extends ChangeNotifier {
-  Color _themeColor = Colors.blueGrey; //Màu mặc định
-  
-  Color get themeColor => _themeColor; // Getter để lấy màu hiện tại
-  void changeThemeColor(Color color) {
-    _themeColor = color; // Cập nhật màu mới
-    notifyListeners(); // Thông báo cho UI cập nhật lại
+  Color _themeColor = Colors.blueGrey;
+  Color get themeColor => _themeColor;
+
+  // [MỚI] Hàm tải màu từ Firestore khi người dùng đăng nhập
+  Future<void> loadThemeColor(String userId) async {
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      if (doc.exists && doc.data()?['themeColor'] != null) {
+        _themeColor = Color(doc.data()!['themeColor']); // Chuyển mã số (int) ngược lại thành màu
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("Lỗi tải theme: $e");
+    }
+  }
+
+  // [MỚI] Cập nhật màu và đồng bộ lên Firestore ngay lập tức
+  Future<void> changeThemeColor(Color color, String? userId) async {
+    _themeColor = color;
+    notifyListeners();
+
+    // Nếu có userId (đã đăng nhập) thì mới lưu lên cloud
+    if (userId != null) {
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(userId).set({
+          'themeColor': color.value, // Lưu mã số của màu (int)
+        }, SetOptions(merge: true)); // Chỉ cập nhật field này, không xóa các field khác
+      } catch (e) {
+        debugPrint("Lỗi lưu theme: $e");
+      }
+    }
   }
 }
 

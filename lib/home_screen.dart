@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'models.dart';
+import 'package:provider/provider.dart'; // [MỚI] Thêm import provider
+
 // Import các tab 
 import 'calendar_tab.dart';
 import 'utilities_tab.dart';
 import 'settings_tab.dart'; // Import tab cài đặt mới
 import 'report_tab.dart'; // Thêm dòng này
+import 'utils.dart'; // [MỚI] Đảm bảo import utils để dùng ThemeProvider
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -24,13 +26,34 @@ class _MyHomePageState extends State<MyHomePage> {
   final GlobalKey<CalendarTabState> _calendarTabKey = GlobalKey<CalendarTabState>();
   final GlobalKey<UtilitiesTabState> _utilitiesTabKey = GlobalKey<UtilitiesTabState>(); // [MỚI] Key cho tiện ích
 
-  // --- [MỚI THÊM] Hàm khởi tạo: Chạy ngay khi mở ứng dụng ---
+  // [MỚI] Hàm lấy tiêu đề AppBar tương ứng với từng Tab
+  String _getAppBarTitle(int index) {
+    switch (index) {
+      case 0:
+        return 'Sổ Thu Chi';
+      case 1:
+        return 'Báo cáo Thống kê';
+      case 2:
+        return 'Quản lý Danh mục';
+      case 3:
+        return 'Cài đặt Tài khoản';
+      default:
+        return 'Sổ Thu Chi';
+    }
+  }
+
+  // --- Hàm khởi tạo: Chạy ngay khi mở ứng dụng ---
   @override
   void initState() {
     super.initState();
     _checkAndCreateDefaultCategories();
-  }
 
+    // Tự động tải màu giao diện cá nhân của người dùng từ Firestore
+    // Dùng Future.microtask để đảm bảo Context đã sẵn sàng
+    Future.microtask(() {
+      Provider.of<ThemeProvider>(context, listen: false).loadThemeColor(userId);
+    });
+  }
   // --- Hàm tự động tạo danh mục mẫu cho tài khoản mới ---
   void _checkAndCreateDefaultCategories() async {
     final catRef = FirebaseFirestore.instance.collection('users').doc(userId).collection('categories');
@@ -98,7 +121,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_selectedIndex == 2 ? 'Quản Lý Danh Mục' : 'Sổ Thu Chi'),
+        title: Text(_getAppBarTitle(_selectedIndex)), // Tiêu đề thay đổi theo Tab
         actions: [
           // Nếu đang ở Tab Lịch, hiện nút chọn tháng/năm trên thanh tiêu đề
           if (_selectedIndex == 0) ...[

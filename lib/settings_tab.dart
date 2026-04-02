@@ -218,6 +218,7 @@ class _SettingsTabState extends State<SettingsTab> {
   }
 
   // DIALOG: CHỌN MÀU THEME
+  // ... tìm đến hàm _showThemeDialog ...
   void _showThemeDialog() {
     showDialog(
       context: context,
@@ -229,8 +230,10 @@ class _SettingsTabState extends State<SettingsTab> {
           children: appColors.map((color) {
             return GestureDetector(
               onTap: () {
-                // [SỬA] Gọi hàm đổi màu thực tế từ ThemeProvider
-                Provider.of<ThemeProvider>(context, listen: false).changeThemeColor(color);
+                // [SỬA]: Lấy userId hiện tại để lưu màu lên Firestore
+                final userId = FirebaseAuth.instance.currentUser?.uid;
+                Provider.of<ThemeProvider>(context, listen: false)
+                    .changeThemeColor(color, userId);
                 Navigator.pop(ctx);
               },
               child: Container(
