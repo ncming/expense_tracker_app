@@ -6,7 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class CategoryItem {
   final String id;
   final String name;
-  final int iconCode;   // Lưu mã số của Icon
+  final int iconCode; // Lưu mã số của Icon
   final int colorValue; // Lưu mã số của Màu
   final bool isExpense; // True: Chi, False: Thu
 
@@ -32,7 +32,8 @@ class CategoryItem {
       id: id,
       name: map['name'] ?? 'Không tên',
       // Mặc định icon dấu hỏi nếu lỗi
-      iconCode: map['iconCode'] ?? 0xe3d9, // 0xe3d9 là mã của Icons.help_outline
+      iconCode:
+          map['iconCode'] ?? 0xe3d9, // 0xe3d9 là mã của Icons.help_outline
       // Mặc định màu xám nếu lỗi
       colorValue: map['colorValue'] ?? 0xFF9E9E9E, // 0xFF9E9E9E là màu xám
       isExpense: map['isExpense'] ?? true,
@@ -62,8 +63,10 @@ class Transaction {
   Map<String, dynamic> toMap() {
     return {
       'amount': amount,
-      'date': Timestamp.fromDate(date), // Lưu dưới dạng Timestamp thay vì string
-      'categoryId': categoryId,       // Lưu ID chuỗi
+      'date': Timestamp.fromDate(
+        date,
+      ), // Lưu dưới dạng Timestamp thay vì string
+      'categoryId': categoryId, // Lưu ID chuỗi
       'note': note,
       'isExpense': isExpense,
     };
@@ -77,7 +80,9 @@ class Transaction {
       amount: (map['amount'] as num? ?? 0).toDouble(),
 
       // Nếu không có ngày thì lấy ngày hiện tại
-      date: map['date'] is Timestamp ? (map['date'] as Timestamp).toDate() : DateTime.now(),
+      date: map['date'] is Timestamp
+          ? (map['date'] as Timestamp).toDate()
+          : DateTime.now(),
 
       // Nếu không có categoryId thì để rỗng
       categoryId: map['categoryId'] ?? '',

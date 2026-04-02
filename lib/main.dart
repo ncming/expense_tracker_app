@@ -45,10 +45,19 @@ class MyApp extends StatelessWidget {
       title: 'Sổ Thu Chi',
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: themeColor, brightness: Brightness.light),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: themeColor,
+          brightness: Brightness.light,
+        ),
         //Pha màu chủ đạo vào nền trắng để tạo lớp nền đặc (solid)
-        scaffoldBackgroundColor: Color.alphaBlend(themeColor.withOpacity(0.08), Colors.white), 
-        appBarTheme: AppBarTheme(backgroundColor: themeColor, foregroundColor: Colors.white),
+        scaffoldBackgroundColor: Color.alphaBlend(
+          themeColor.withValues(alpha: 0.08),
+          Colors.white,
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: themeColor,
+          foregroundColor: Colors.white,
+        ),
       ),
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
@@ -75,7 +84,9 @@ class AuthWrapper extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(), //trạng thái đăng nhập
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
         if (snapshot.hasData) {
           return const MyHomePage(); //User -> HomePage

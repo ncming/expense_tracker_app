@@ -12,9 +12,14 @@ class ThemeProvider extends ChangeNotifier {
   // [MỚI] Hàm tải màu từ Firestore khi người dùng đăng nhập
   Future<void> loadThemeColor(String userId) async {
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
       if (doc.exists && doc.data()?['themeColor'] != null) {
-        _themeColor = Color(doc.data()!['themeColor']); // Chuyển mã số (int) ngược lại thành màu
+        _themeColor = Color(
+          doc.data()!['themeColor'],
+        ); // Chuyển mã số (int) ngược lại thành màu
         notifyListeners();
       }
     } catch (e) {
@@ -30,9 +35,12 @@ class ThemeProvider extends ChangeNotifier {
     // Nếu có userId (đã đăng nhập) thì mới lưu lên cloud
     if (userId != null) {
       try {
-        await FirebaseFirestore.instance.collection('users').doc(userId).set({
-          'themeColor': color.value, // Lưu mã số của màu (int)
-        }, SetOptions(merge: true)); // Chỉ cập nhật field này, không xóa các field khác
+        await FirebaseFirestore.instance.collection('users').doc(userId).set(
+          {
+            'themeColor': color.toARGB32(), // Lưu mã số của màu (int)
+          },
+          SetOptions(merge: true),
+        ); // Chỉ cập nhật field này, không xóa các field khác
       } catch (e) {
         debugPrint("Lỗi lưu theme: $e");
       }
@@ -44,7 +52,10 @@ class ThemeProvider extends ChangeNotifier {
 // Class này giúp tự động thêm dấu phẩy ngăn cách hàng nghìn khi nhập số tiền
 class ThousandsSeparatorInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     // Nếu ô nhập trống thì trả về trống
     if (newValue.text.isEmpty) {
       return newValue.copyWith(text: '');

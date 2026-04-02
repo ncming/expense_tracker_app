@@ -284,7 +284,7 @@ class _ReportTabState extends State<ReportTab> {
                   final category = categoryMap[entry.key];
                   if (category == null) return const SizedBox.shrink();
                   return _buildCategoryCard(category, entry.value, Colors.red);
-                }).toList(),
+                }),
                 if (categoryExpenses.isEmpty)
                   const Text('Không có chi tiêu trong tháng này.'),
                 const SizedBox(height: 24),
@@ -301,7 +301,7 @@ class _ReportTabState extends State<ReportTab> {
                     entry.value,
                     Colors.green,
                   );
-                }).toList(),
+                }),
                 if (categoryIncomes.isEmpty)
                   const Text('Không có thu nhập trong tháng này.'),
               ],
@@ -446,7 +446,7 @@ class _ReportTabState extends State<ReportTab> {
                   final category = categoryMap[entry.key];
                   if (category == null) return const SizedBox.shrink();
                   return _buildCategoryCard(category, entry.value, Colors.red);
-                }).toList(),
+                }),
                 if (categoryExpenses.isEmpty)
                   const Text('Không có chi tiêu trong năm này.'),
                 const SizedBox(height: 24),
@@ -463,7 +463,7 @@ class _ReportTabState extends State<ReportTab> {
                     entry.value,
                     Colors.green,
                   );
-                }).toList(),
+                }),
                 if (categoryIncomes.isEmpty)
                   const Text('Không có thu nhập trong năm này.'),
                 const SizedBox(height: 24),
@@ -511,14 +511,14 @@ class _ReportTabState extends State<ReportTab> {
   }) {
     return Card(
       elevation: 4,
-      shadowColor: color.withOpacity(0.4),
+      shadowColor: color.withValues(alpha: 0.4),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
             CircleAvatar(
-              backgroundColor: color.withOpacity(0.15),
+              backgroundColor: color.withValues(alpha: 0.15),
               child: Icon(icon, color: color),
             ),
             const SizedBox(height: 12),
@@ -552,7 +552,7 @@ class _ReportTabState extends State<ReportTab> {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: Color(category.colorValue).withOpacity(0.15),
+          backgroundColor: Color(category.colorValue).withValues(alpha: 0.15),
           child: Icon(
             IconData(category.iconCode, fontFamily: 'MaterialIcons'),
             color: Color(category.colorValue),
