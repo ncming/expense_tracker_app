@@ -59,6 +59,9 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   // --- Hàm tự động tạo danh mục mẫu cho tài khoản mới ---
+  // Gọi hàm này trong `initState`, đây là một thao tác quan trọng để onboard User (giúp user
+  // mới cài app có sẵn các nhãn như "Ăn uống", "Đi lại" thay vì thấy giao diện trống trơn).
+  // Chỉ tạo [MỘT LẦN] khi query tới collection 'categories' trả về kết quả rỗng.
   void _checkAndCreateDefaultCategories() async {
     final catRef = FirebaseFirestore.instance
         .collection('users')

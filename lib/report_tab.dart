@@ -165,6 +165,9 @@ class _ReportTabState extends State<ReportTab> {
       59,
     );
 
+    // [TỐI ƯU TRUY VẤN - BÁO CÁO THÁNG]
+    // Firebase query: dùng `isGreaterThanOrEqualTo` và `isLessThanOrEqualTo` để giới hạn 1 tháng duy nhất.
+    // Việc này giúp tiết kiệm băng thông mạng và tốc độ parse dữ liệu xuống mức tối thiểu.
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('users')

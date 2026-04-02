@@ -142,7 +142,14 @@ class CalendarTabState extends State<CalendarTab> {
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
 
-    // Lồng 2 StreamBuilder: Lấy Categories -> Lấy Transactions
+    // [KIẾN TRÚC LỒNG STREAM (Nested StreamBuilder)]
+    // Khó khăn: App cần hiện icon, màu sắc và tên danh mục của từng giao dịch. Nhưng bảng 'transactions'
+    // trên Firestore chỉ lưu 'categoryId' chứ không lưu chi tiết danh mục.
+    // Giải pháp:
+    // Bước 1: Gọi StreamBuilder đầu tiên tải collection 'categories'.
+    // Bước 2: Build được một `categoryMap` (Map<String, CategoryItem>) để tra cứu thần tốc O(1).
+    // Bước 3: Lồng StreamBuilder thứ 2 để tải collection 'transactions'.
+    // Bước 4: Map 'categoryId' ở giao dịch vào `categoryMap` để lấy icon/màu sắc trên UI.
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('users')
@@ -181,6 +188,12 @@ class CalendarTabState extends State<CalendarTab> {
                   ),
                 )
                 .toList();
+
+            // [LỌC PHÍA CLIENT]
+            // Tìm tất cả giao dịch đúng với ngày đang chọn (_selectedDay).
+            // Lưu ý: Lọc thẳng trên máy client (lấy toàn bộ rồi list.where) có thể chậm
+            // thay vì dùng .where('date') của Firestore nếu lượng dữ liệu lớn (như 10,000+ bản ghi),
+            // nhưng bù lại không cần viết index Firestore phức tạp cho theo khoảng .startOfDay/.endOfDay.
             final selectedTransactions = allTransactions
                 .where((tx) => isSameDay(tx.date, _selectedDay))
                 .toList();
