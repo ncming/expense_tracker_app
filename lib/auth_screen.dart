@@ -214,7 +214,7 @@ class _AuthScreenState extends State<AuthScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(_isLogin ? Icons.login : Icons.app_registration, size: 80, color: Colors.blueGrey.shade700),
+                  Image.asset('assets/logo3.PNG', fit: BoxFit.contain, height: 80, width: 80),
                   const SizedBox(height: 10),
                   Text(_isLogin ? "Đăng Nhập" : "Đăng Ký", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 20),
