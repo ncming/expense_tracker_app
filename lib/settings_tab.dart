@@ -318,7 +318,7 @@ class _SettingsTabState extends State<SettingsTab> {
       applicationVersion: 'Phiên bản 1.0.0',
       applicationIcon: const Icon(Icons.account_balance_wallet, size: 50, color: Colors.blueGrey),
       children: const [
-        Text('Ứng dụng quản lý thu chi cá nhân an toàn và bảo mật.\n\nPhát triển bởi: Học viên VNUA.'),
+        Text('Ứng dụng quản lý thu chi cá nhân an toàn và bảo mật.\n\nPhát triển bởi: Nhóm 5.'),
       ],
     );
   }
