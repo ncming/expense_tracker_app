@@ -12,11 +12,16 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
+  // Controller giữ dữ liệu input của người dùng trong suốt vòng đời màn hình.
+  // dispose() bên dưới sẽ giải phóng tài nguyên để tránh memory leak.
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController =
       TextEditingController(); //Controller xác nhận mật khẩu
 
+  // _isLogin: true = đang ở mode Đăng nhập, false = mode Đăng ký.
+  // _isLoading: khóa thao tác khi đang gọi Firebase để tránh bấm nhiều lần.
+  // _obscure*: bật/tắt hiển thị mật khẩu cho từng ô.
   bool _isLogin = true; //switch login & reg
   bool _isLoading = false;
   bool _obscurePassword = true; //Ẩn hiện mật khẩu
@@ -40,6 +45,8 @@ class _AuthScreenState extends State<AuthScreen> {
 
   // T-Kiểm tra độ mạnh mật khẩu
   String _validatePassword(String password) {
+    // Rule local để phản hồi ngay trên UI trước khi gửi request lên Firebase.
+    // Điều này giúp UX tốt hơn và giảm request không cần thiết.
     if (password.length < 8) {
       return 'Mật khẩu phải có ít nhất 8 ký tự';
     }
@@ -56,6 +63,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void _submitAuthForm() async {
+    // Chuẩn hóa dữ liệu trước khi validate (trim khoảng trắng đầu/cuối).
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
@@ -110,6 +118,9 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // Cùng một nút Submit nhưng xử lý 2 mode:
+      // - Đăng nhập: kiểm tra tài khoản hiện có
+      // - Đăng ký: tạo tài khoản mới bằng email/password
       if (_isLogin) {
         // T-Login
         await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -212,9 +223,11 @@ class _AuthScreenState extends State<AuthScreen> {
 
   // Đăng nhập bằng tài khoản Google
   Future<void> _signInWithGoogle() async {
+    // Khi bắt đầu auth flow, chuyển UI sang trạng thái loading.
     setState(() => _isLoading = true);
 
     try {
+      // Mở Google account picker. Nếu người dùng bấm hủy, hàm trả về null.
       final googleUser = await GoogleSignIn().signIn();
 
       if (googleUser == null) {
@@ -226,6 +239,8 @@ class _AuthScreenState extends State<AuthScreen> {
         return;
       }
 
+      // Lấy token từ Google và đổi sang Firebase credential.
+      // Firebase dùng credential này để xác thực và tạo session đăng nhập.
       final googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
@@ -246,6 +261,7 @@ class _AuthScreenState extends State<AuthScreen> {
       var message = 'Đăng nhập Google thất bại: ${e.message ?? e.code}';
 
       // ApiException 10 thường do thiếu SHA hoặc google-services.json chưa đúng package.
+      // Đây là lỗi cấu hình phổ biến nhất trên Android khi mới tích hợp Google Sign-In.
       if ((e.message ?? '').contains('ApiException: 10')) {
         message =
             'Google Sign-In lỗi cấu hình (ApiException: 10). Kiểm tra SHA-1/SHA-256 và tải lại google-services.json.';
@@ -267,6 +283,7 @@ class _AuthScreenState extends State<AuthScreen> {
       }
     } finally {
       if (mounted) {
+        // Dù thành công hay thất bại đều cần trả UI về trạng thái tương tác bình thường.
         setState(() => _isLoading = false);
       }
     }
@@ -410,6 +427,10 @@ class _AuthScreenState extends State<AuthScreen> {
                   if (_isLoading)
                     const CircularProgressIndicator()
                   else
+                    // Cụm nút thao tác chính:
+                    // 1) Đăng nhập/Đăng ký bằng email-password
+                    // 2) Chuyển mode login <-> register
+                    // 3) (Mode login) Đăng nhập nhanh với Google
                     Column(
                       children: [
                         ElevatedButton.icon(
