@@ -18,13 +18,18 @@ class _ReportTabState extends State<ReportTab> {
   // Hàm chuyển đổi tháng
   void _changeMonth(int offset) {
     final now = DateTime.now();
-    final newMonth = DateTime(_selectedMonth.year, _selectedMonth.month + offset, 1);
-    
+    final newMonth = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month + offset,
+      1,
+    );
+
     // Không cho phép chọn tháng trong tương lai
-    if (newMonth.year > now.year || (newMonth.year == now.year && newMonth.month > now.month)) {
+    if (newMonth.year > now.year ||
+        (newMonth.year == now.year && newMonth.month > now.month)) {
       return;
     }
-    
+
     setState(() {
       _selectedMonth = newMonth;
     });
@@ -34,12 +39,12 @@ class _ReportTabState extends State<ReportTab> {
   void _changeYear(int offset) {
     final now = DateTime.now();
     final newYear = DateTime(_selectedYear.year + offset, 1, 1);
-    
+
     // Không cho phép chọn năm trong tương lai
     if (newYear.year > now.year) {
       return;
     }
-    
+
     setState(() {
       _selectedYear = newYear;
     });
@@ -64,17 +69,45 @@ class _ReportTabState extends State<ReportTab> {
               ElevatedButton(
                 onPressed: () => setState(() => _isAnnualView = false),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: !_isAnnualView ? Theme.of(context).colorScheme.primary : Colors.grey,
+                  backgroundColor: !_isAnnualView
+                      ? const Color(0xFF43A047)
+                      : const Color(0xFFBDBDBD),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  elevation: !_isAnnualView ? 6 : 2,
                 ),
-                child: const Text('Theo Tháng'),
+                child: const Text(
+                  'Theo Tháng',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
               ),
               const SizedBox(width: 16),
               ElevatedButton(
                 onPressed: () => setState(() => _isAnnualView = true),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _isAnnualView ? Theme.of(context).colorScheme.primary : Colors.grey,
+                  backgroundColor: _isAnnualView
+                      ? const Color(0xFF1E88E5)
+                      : const Color(0xFFBDBDBD),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  elevation: _isAnnualView ? 6 : 2,
                 ),
-                child: const Text('Theo Năm'),
+                child: const Text(
+                  'Theo Năm',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
               ),
             ],
           ),
@@ -90,17 +123,22 @@ class _ReportTabState extends State<ReportTab> {
             children: [
               IconButton(
                 icon: const Icon(Icons.chevron_left, size: 30),
-                onPressed: () => _isAnnualView ? _changeYear(-1) : _changeMonth(-1),
+                onPressed: () =>
+                    _isAnnualView ? _changeYear(-1) : _changeMonth(-1),
               ),
               Text(
                 _isAnnualView
                     ? 'Năm ${_selectedYear.year}'
                     : 'Tháng ${_selectedMonth.month} năm ${_selectedMonth.year}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.chevron_right, size: 30),
-                onPressed: () => _isAnnualView ? _changeYear(1) : _changeMonth(1),
+                onPressed: () =>
+                    _isAnnualView ? _changeYear(1) : _changeMonth(1),
               ),
             ],
           ),
@@ -118,14 +156,24 @@ class _ReportTabState extends State<ReportTab> {
   Widget _buildMonthlyView() {
     // Tính toán ngày đầu tiên và ngày cuối cùng của tháng được chọn
     final startOfMonth = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
-    final endOfMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0, 23, 59, 59);
+    final endOfMonth = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month + 1,
+      0,
+      23,
+      59,
+      59,
+    );
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('users')
           .doc(widget.userId)
           .collection('transactions')
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+          .where(
+            'date',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth),
+          )
           .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
           .snapshots(),
       builder: (context, transactionSnapshot) {
@@ -150,12 +198,20 @@ class _ReportTabState extends State<ReportTab> {
             }
 
             if (categorySnapshot.hasError) {
-              return const Center(child: Text('Đã xảy ra lỗi khi tải danh mục.'));
+              return const Center(
+                child: Text('Đã xảy ra lỗi khi tải danh mục.'),
+              );
             }
 
             // Xử lý dữ liệu
-            final categories = categorySnapshot.data!.docs.map((doc) =>
-                CategoryItem.fromMap(doc.data() as Map<String, dynamic>, doc.id)).toList();
+            final categories = categorySnapshot.data!.docs
+                .map(
+                  (doc) => CategoryItem.fromMap(
+                    doc.data() as Map<String, dynamic>,
+                    doc.id,
+                  ),
+                )
+                .toList();
 
             final categoryMap = {for (var cat in categories) cat.id: cat};
 
@@ -164,7 +220,8 @@ class _ReportTabState extends State<ReportTab> {
             Map<String, double> categoryExpenses = {};
             Map<String, double> categoryIncomes = {};
 
-            if (transactionSnapshot.hasData && transactionSnapshot.data!.docs.isNotEmpty) {
+            if (transactionSnapshot.hasData &&
+                transactionSnapshot.data!.docs.isNotEmpty) {
               for (var doc in transactionSnapshot.data!.docs) {
                 final data = doc.data() as Map<String, dynamic>;
                 final amount = (data['amount'] ?? 0).toDouble();
@@ -173,10 +230,12 @@ class _ReportTabState extends State<ReportTab> {
 
                 if (isExpense) {
                   totalExpense += amount;
-                  categoryExpenses[categoryId] = (categoryExpenses[categoryId] ?? 0) + amount;
+                  categoryExpenses[categoryId] =
+                      (categoryExpenses[categoryId] ?? 0) + amount;
                 } else {
                   totalIncome += amount;
-                  categoryIncomes[categoryId] = (categoryIncomes[categoryId] ?? 0) + amount;
+                  categoryIncomes[categoryId] =
+                      (categoryIncomes[categoryId] ?? 0) + amount;
                 }
               }
             }
@@ -226,7 +285,8 @@ class _ReportTabState extends State<ReportTab> {
                   if (category == null) return const SizedBox.shrink();
                   return _buildCategoryCard(category, entry.value, Colors.red);
                 }).toList(),
-                if (categoryExpenses.isEmpty) const Text('Không có chi tiêu trong tháng này.'),
+                if (categoryExpenses.isEmpty)
+                  const Text('Không có chi tiêu trong tháng này.'),
                 const SizedBox(height: 24),
                 const Text(
                   'Thu Nhập Theo Danh Mục',
@@ -236,9 +296,14 @@ class _ReportTabState extends State<ReportTab> {
                 ...categoryIncomes.entries.map((entry) {
                   final category = categoryMap[entry.key];
                   if (category == null) return const SizedBox.shrink();
-                  return _buildCategoryCard(category, entry.value, Colors.green);
+                  return _buildCategoryCard(
+                    category,
+                    entry.value,
+                    Colors.green,
+                  );
                 }).toList(),
-                if (categoryIncomes.isEmpty) const Text('Không có thu nhập trong tháng này.'),
+                if (categoryIncomes.isEmpty)
+                  const Text('Không có thu nhập trong tháng này.'),
               ],
             );
           },
@@ -256,7 +321,10 @@ class _ReportTabState extends State<ReportTab> {
           .collection('users')
           .doc(widget.userId)
           .collection('transactions')
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfYear))
+          .where(
+            'date',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfYear),
+          )
           .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfYear))
           .snapshots(),
       builder: (context, transactionSnapshot) {
@@ -281,12 +349,20 @@ class _ReportTabState extends State<ReportTab> {
             }
 
             if (categorySnapshot.hasError) {
-              return const Center(child: Text('Đã xảy ra lỗi khi tải danh mục.'));
+              return const Center(
+                child: Text('Đã xảy ra lỗi khi tải danh mục.'),
+              );
             }
 
             // Xử lý dữ liệu
-            final categories = categorySnapshot.data!.docs.map((doc) =>
-                CategoryItem.fromMap(doc.data() as Map<String, dynamic>, doc.id)).toList();
+            final categories = categorySnapshot.data!.docs
+                .map(
+                  (doc) => CategoryItem.fromMap(
+                    doc.data() as Map<String, dynamic>,
+                    doc.id,
+                  ),
+                )
+                .toList();
 
             final categoryMap = {for (var cat in categories) cat.id: cat};
 
@@ -297,24 +373,31 @@ class _ReportTabState extends State<ReportTab> {
             Map<String, double> categoryExpenses = {};
             Map<String, double> categoryIncomes = {};
 
-            if (transactionSnapshot.hasData && transactionSnapshot.data!.docs.isNotEmpty) {
+            if (transactionSnapshot.hasData &&
+                transactionSnapshot.data!.docs.isNotEmpty) {
               for (var doc in transactionSnapshot.data!.docs) {
                 final data = doc.data() as Map<String, dynamic>;
                 final amount = (data['amount'] ?? 0).toDouble();
                 final isExpense = data['isExpense'] ?? true;
-                final date = data['date'] is Timestamp ? (data['date'] as Timestamp).toDate() : DateTime.now();
+                final date = data['date'] is Timestamp
+                    ? (data['date'] as Timestamp).toDate()
+                    : DateTime.now();
                 final month = date.month;
                 final categoryId = data['categoryId'] ?? '';
 
                 monthlyData[month] ??= {'income': 0, 'expense': 0};
                 if (isExpense) {
-                  monthlyData[month]!['expense'] = (monthlyData[month]!['expense'] ?? 0) + amount;
+                  monthlyData[month]!['expense'] =
+                      (monthlyData[month]!['expense'] ?? 0) + amount;
                   totalExpense += amount;
-                  categoryExpenses[categoryId] = (categoryExpenses[categoryId] ?? 0) + amount;
+                  categoryExpenses[categoryId] =
+                      (categoryExpenses[categoryId] ?? 0) + amount;
                 } else {
-                  monthlyData[month]!['income'] = (monthlyData[month]!['income'] ?? 0) + amount;
+                  monthlyData[month]!['income'] =
+                      (monthlyData[month]!['income'] ?? 0) + amount;
                   totalIncome += amount;
-                  categoryIncomes[categoryId] = (categoryIncomes[categoryId] ?? 0) + amount;
+                  categoryIncomes[categoryId] =
+                      (categoryIncomes[categoryId] ?? 0) + amount;
                 }
               }
             }
@@ -364,7 +447,8 @@ class _ReportTabState extends State<ReportTab> {
                   if (category == null) return const SizedBox.shrink();
                   return _buildCategoryCard(category, entry.value, Colors.red);
                 }).toList(),
-                if (categoryExpenses.isEmpty) const Text('Không có chi tiêu trong năm này.'),
+                if (categoryExpenses.isEmpty)
+                  const Text('Không có chi tiêu trong năm này.'),
                 const SizedBox(height: 24),
                 const Text(
                   'Thu Nhập Theo Danh Mục (Năm)',
@@ -374,9 +458,14 @@ class _ReportTabState extends State<ReportTab> {
                 ...categoryIncomes.entries.map((entry) {
                   final category = categoryMap[entry.key];
                   if (category == null) return const SizedBox.shrink();
-                  return _buildCategoryCard(category, entry.value, Colors.green);
+                  return _buildCategoryCard(
+                    category,
+                    entry.value,
+                    Colors.green,
+                  );
                 }).toList(),
-                if (categoryIncomes.isEmpty) const Text('Không có thu nhập trong năm này.'),
+                if (categoryIncomes.isEmpty)
+                  const Text('Không có thu nhập trong năm này.'),
                 const SizedBox(height: 24),
                 const Text(
                   'Báo Cáo Theo Tháng',
@@ -385,13 +474,16 @@ class _ReportTabState extends State<ReportTab> {
                 const SizedBox(height: 16),
                 ...List.generate(12, (index) {
                   final month = index + 1;
-                  final data = monthlyData[month] ?? {'income': 0.0, 'expense': 0.0};
+                  final data =
+                      monthlyData[month] ?? {'income': 0.0, 'expense': 0.0};
                   final monthBalance = data['income']! - data['expense']!;
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
                       title: Text('Tháng $month'),
-                      subtitle: Text('Thu nhập: ${_formatCurrency(data['income']!)} | Chi tiêu: ${_formatCurrency(data['expense']!)}'),
+                      subtitle: Text(
+                        'Thu nhập: ${_formatCurrency(data['income']!)} | Chi tiêu: ${_formatCurrency(data['expense']!)}',
+                      ),
                       trailing: Text(
                         _formatCurrency(monthBalance),
                         style: TextStyle(
@@ -432,12 +524,20 @@ class _ReportTabState extends State<ReportTab> {
             const SizedBox(height: 12),
             Text(
               title,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               _formatCurrency(amount),
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -461,10 +561,7 @@ class _ReportTabState extends State<ReportTab> {
         title: Text(category.name),
         trailing: Text(
           _formatCurrency(amount),
-          style: TextStyle(
-            color: color,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: color, fontWeight: FontWeight.bold),
         ),
       ),
     );
