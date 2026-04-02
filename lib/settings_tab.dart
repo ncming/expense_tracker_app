@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 
-// import 'auth_screen.dart'; // Để điều hướng về màn hình đăng nhập
-// import 'models.dart'; // File chứa ThemeProvider 
+// [SỬA] Không cần import auth_screen.dart nữa vì AuthWrapper ở main.dart sẽ tự lo việc chuyển trang
+import 'utils.dart'; // [SỬA] Import utils.dart để sử dụng ThemeProvider 
 
 class SettingsTab extends StatefulWidget {
   const SettingsTab({super.key});
@@ -229,8 +229,8 @@ class _SettingsTabState extends State<SettingsTab> {
           children: appColors.map((color) {
             return GestureDetector(
               onTap: () {
-                // TODO: Gọi hàm đổi màu từ ThemeProvider của bạn
-                // Ví dụ: Provider.of<ThemeProvider>(context, listen: false).changeThemeColor(color);
+                // [SỬA] Gọi hàm đổi màu thực tế từ ThemeProvider
+                Provider.of<ThemeProvider>(context, listen: false).changeThemeColor(color);
                 Navigator.pop(ctx);
               },
               child: Container(
@@ -303,20 +303,22 @@ class _SettingsTabState extends State<SettingsTab> {
   Widget build(BuildContext context) {
     // Luôn lấy currentUser mới nhất mỗi khi build lại giao diện
     final currentUser = FirebaseAuth.instance.currentUser;
-    // final currentThemeColor = Provider.of<ThemeProvider>(context).themeColor; // Mở cmt dòng này nếu muốn lấy màu theme hiện tại
+    
+    // [SỬA] Đã mở khóa: Lấy màu theme hiện tại để làm điểm nhấn nhẹ cho các icon
+    final currentThemeColor = Provider.of<ThemeProvider>(context).themeColor;
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         // --- 1. TÀI KHOẢN ---
-        const Text('Tài khoản', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+        Text('Tài khoản', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: currentThemeColor)),
         const SizedBox(height: 8),
         Card(
           elevation: 0,
-          color: Colors.blueGrey.shade50,
+          color: currentThemeColor.withOpacity(0.1),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: ListTile(
-            leading: const CircleAvatar(backgroundColor: Colors.white, child: Icon(Icons.person, color: Colors.blueGrey)),
+            leading: CircleAvatar(backgroundColor: Colors.white, child: Icon(Icons.person, color: currentThemeColor)),
             title: Text(
               currentUser?.displayName?.isNotEmpty == true ? currentUser!.displayName! : (currentUser?.email ?? 'Chưa đăng nhập'),
               style: const TextStyle(fontWeight: FontWeight.bold),
@@ -329,7 +331,7 @@ class _SettingsTabState extends State<SettingsTab> {
         const SizedBox(height: 24),
 
         // --- 2. CÀI ĐẶT ỨNG DỤNG ---
-        const Text('Cài đặt', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+        Text('Cài đặt', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: currentThemeColor)),
         const SizedBox(height: 8),
         Card(
           elevation: 0,
@@ -374,15 +376,9 @@ class _SettingsTabState extends State<SettingsTab> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           onPressed: () async {
+            // [SỬA] Đã loại bỏ code chuyển trang thừa. 
+            // Nhờ AuthWrapper, chỉ cần gọi hàm này là App tự biết đường đẩy về Login
             await FirebaseAuth.instance.signOut();
-            if (context.mounted) {
-              // TODO: Chỉnh sửa lại tên class AuthScreen cho đúng với dự án của bạn
-              // Navigator.pushAndRemoveUntil(
-              //   context,
-              //   MaterialPageRoute(builder: (context) => const AuthScreen()),
-              //   (route) => false, // Xóa toàn bộ lịch sử trang
-              // );
-            }
           },
           icon: const Icon(Icons.logout),
           label: const Text('Đăng xuất', style: TextStyle(fontWeight: FontWeight.bold)),

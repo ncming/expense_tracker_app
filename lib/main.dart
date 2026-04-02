@@ -45,9 +45,9 @@ class MyApp extends StatelessWidget {
       title: 'Sổ Thu Chi',
       theme: ThemeData(
         useMaterial3: true,
-        // [SỬA] Dùng themeColor thay cho Colors.blueGrey cố định
         colorScheme: ColorScheme.fromSeed(seedColor: themeColor, brightness: Brightness.light),
-        scaffoldBackgroundColor: themeColor.withOpacity(0.05), // Đổi nền nhạt theo màu chủ đạo
+        //Pha màu chủ đạo vào nền trắng để tạo lớp nền đặc (solid)
+        scaffoldBackgroundColor: Color.alphaBlend(themeColor.withOpacity(0.08), Colors.white), 
         appBarTheme: AppBarTheme(backgroundColor: themeColor, foregroundColor: Colors.white),
       ),
       localizationsDelegates: const [
