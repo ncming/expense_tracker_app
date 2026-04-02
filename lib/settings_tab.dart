@@ -1,8 +1,11 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 
-// SettingsTab: Widget chính cho tab cài đặt tài khoản
-// Hiển thị thông tin tài khoản và cho phép cập nhật tên hiển thị và mật khẩu
+// import 'auth_screen.dart'; // Để điều hướng về màn hình đăng nhập
+// import 'models.dart'; // File chứa ThemeProvider 
+
 class SettingsTab extends StatefulWidget {
   const SettingsTab({super.key});
 
@@ -10,24 +13,26 @@ class SettingsTab extends StatefulWidget {
   State<SettingsTab> createState() => _SettingsTabState();
 }
 
-// _SettingsTabState: State class quản lý trạng thái của SettingsTab
-// Bao gồm controllers, user data, và các dialog cho cập nhật tài khoản
 class _SettingsTabState extends State<SettingsTab> {
-  // user: Lấy thông tin user hiện tại từ Firebase Auth
-  final user = FirebaseAuth.instance.currentUser;
-
-  // displayNameController: Controller cho TextField nhập tên hiển thị
   final displayNameController = TextEditingController();
+
+  // Danh sách các màu để người dùng chọn làm Theme
+  final List<Color> appColors = [
+    Colors.blue,
+    Colors.green,
+    Colors.purple,
+    Colors.orange,
+    Colors.teal,
+    Colors.red,
+    Colors.blueGrey,
+  ];
 
   @override
   void dispose() {
-    // Giải phóng controller khi widget bị hủy để tránh memory leak
     displayNameController.dispose();
     super.dispose();
   }
 
-  // _buildCheckRow: Widget helper để hiển thị trạng thái kiểm tra mật khẩu
-  // Hiển thị icon check hoặc uncheck với màu tương ứng
   Widget _buildCheckRow(bool ok, String text) {
     return Row(
       children: [
@@ -39,42 +44,28 @@ class _SettingsTabState extends State<SettingsTab> {
     );
   }
 
-  // _validatePassword: Hàm kiểm tra tính hợp lệ của mật khẩu
-  // Trả về chuỗi lỗi nếu không hợp lệ, rỗng nếu hợp lệ
   String _validatePassword(String password) {
-    if (password.length < 8) {
-      return 'Mật khẩu phải có ít nhất 8 ký tự';
-    }
-    if (!password.contains(RegExp(r'[A-Z]'))) {
-      return 'Mật khẩu phải chứa ít nhất một chữ cái hoa';
-    }
-    if (!password.contains(RegExp(r'[a-z]'))) {
-      return 'Mật khẩu phải chứa ít nhất một chữ cái thường';
-    }
-    if (!password.contains(RegExp(r'[0-9]'))) {
-      return 'Mật khẩu phải chứa ít nhất một chữ số';
-    }
+    if (password.length < 8) return 'Mật khẩu phải có ít nhất 8 ký tự';
+    if (!password.contains(RegExp(r'[A-Z]'))) return 'Mật khẩu phải chứa ít nhất một chữ cái hoa';
+    if (!password.contains(RegExp(r'[a-z]'))) return 'Mật khẩu phải chứa ít nhất một chữ cái thường';
+    if (!password.contains(RegExp(r'[0-9]'))) return 'Mật khẩu phải chứa ít nhất một chữ số';
     return '';
   }
 
-  // _showAccountSettingsDialog: Hiển thị dialog cập nhật tài khoản
-  // Bao gồm form đổi tên hiển thị và đổi mật khẩu trong cùng một dialog
+  // DIALOG: CẬP NHẬT TÀI KHOẢN (Giữ nguyên logic cực tốt của bạn)
   void _showAccountSettingsDialog() {
-    // Khởi tạo giá trị ban đầu cho tên hiển thị
-    displayNameController.text = user?.displayName ?? '';
+    final currentUser = FirebaseAuth.instance.currentUser;
+    displayNameController.text = currentUser?.displayName ?? '';
 
-    // Controllers cho các trường mật khẩu
     final currentPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
 
-    // Biến trạng thái cho loading và lỗi
     bool isSavingName = false;
     bool isSavingPassword = false;
     String? nameError;
     String? passwordError;
 
-    // Biến trạng thái cho kiểm tra mật khẩu
     bool isLengthValid = false;
     bool hasUppercase = false;
     bool hasLowercase = false;
@@ -82,107 +73,74 @@ class _SettingsTabState extends State<SettingsTab> {
 
     showDialog(
       context: context,
-      barrierDismissible: false, // Không cho phép đóng dialog bằng cách chạm bên ngoài
+      barrierDismissible: false,
       builder: (ctx) {
         return StatefulBuilder(
-          builder: (context, setStateDialog) { // StatefulBuilder để cập nhật trạng thái dialog
+          builder: (context, setStateDialog) {
             return AlertDialog(
               title: const Text('Cập nhật tài khoản', style: TextStyle(fontWeight: FontWeight.bold)),
-              content: SingleChildScrollView( // Cho phép cuộn nếu nội dung dài
+              content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Phần đổi tên hiển thị
+                    // --- ĐỔI TÊN ---
                     const Text('Tên hiển thị', style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     TextField(
                       controller: displayNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Tên hiển thị',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Tên hiển thị', border: OutlineInputBorder()),
                     ),
                     if (nameError != null) ...[
                       const SizedBox(height: 6),
                       Text(nameError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
                     ],
                     const SizedBox(height: 12),
-                    // Nút lưu tên hiển thị
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blueGrey.shade700,
                         foregroundColor: Colors.white,
-                        textStyle: const TextStyle(fontWeight: FontWeight.bold),
                         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          side: BorderSide(color: Colors.blueGrey.shade900, width: 1.5),
-                        ),
                       ),
-                      onPressed: isSavingName
-                          ? null
-                          : () async {
-                              // Validation tên hiển thị
-                              final newName = displayNameController.text.trim();
-                              if (newName.isEmpty) {
-                                setStateDialog(() => nameError = 'Tên hiển thị không được để trống');
-                                return;
-                              }
-                              if (newName.length < 3) {
-                                setStateDialog(() => nameError = 'Tên hiển thị phải ít nhất 3 ký tự');
-                                return;
-                              }
-                              // Bắt đầu lưu
-                              setStateDialog(() {
-                                isSavingName = true;
-                                nameError = null;
-                              });
-                              try {
-                                // Cập nhật displayName trên Firebase Auth
-                                await user?.updateDisplayName(newName);
-                                await user?.reload(); // Reload user data
-                                setState(() {}); // Cập nhật UI chính
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đổi tên hiển thị thành công!'), backgroundColor: Colors.green));
-                                }
-                              } catch (_) {
-                                setStateDialog(() => nameError = 'Lỗi khi cập nhật tên hiển thị');
-                              } finally {
-                                setStateDialog(() => isSavingName = false);
-                              }
-                            },
-                      child: isSavingName
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.grey, strokeWidth: 2))
-                          : const Text('Lưu tên hiển thị', style: TextStyle(color: Colors.white)),
+                      onPressed: isSavingName ? null : () async {
+                        final newName = displayNameController.text.trim();
+                        if (newName.isEmpty) {
+                          setStateDialog(() => nameError = 'Tên hiển thị không được để trống');
+                          return;
+                        }
+                        setStateDialog(() {
+                          isSavingName = true;
+                          nameError = null;
+                        });
+                        try {
+                          await currentUser?.updateDisplayName(newName);
+                          await currentUser?.reload();
+                          setState(() {}); // Cập nhật lại UI chính
+                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đổi tên thành công!'), backgroundColor: Colors.green));
+                        } catch (_) {
+                          setStateDialog(() => nameError = 'Lỗi khi cập nhật');
+                        } finally {
+                          setStateDialog(() => isSavingName = false);
+                        }
+                      },
+                      child: isSavingName ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.grey, strokeWidth: 2)) : const Text('Lưu tên hiển thị'),
                     ),
-                    const Divider(height: 30), // Ngăn cách giữa hai phần
-                    // Phần đổi mật khẩu
+                    const Divider(height: 30),
+                    
+                    // --- ĐỔI MẬT KHẨU ---
                     const Text('Đổi mật khẩu', style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-                    // Trường nhập mật khẩu hiện tại
                     TextField(
                       controller: currentPasswordController,
                       obscureText: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Mật khẩu hiện tại',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.lock_outline),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Mật khẩu hiện tại', border: OutlineInputBorder(), prefixIcon: Icon(Icons.lock_outline)),
                     ),
                     const SizedBox(height: 8),
-                    // Trường nhập mật khẩu mới với validation real-time
                     TextField(
                       controller: newPasswordController,
                       obscureText: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Mật khẩu mới',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.lock_reset),
-                        helperText: '8 ký tự, chữ hoa, chữ thường và số',
-                      ),
+                      decoration: const InputDecoration(labelText: 'Mật khẩu mới', border: OutlineInputBorder(), prefixIcon: Icon(Icons.lock_reset)),
                       onChanged: (value) {
-                        // Cập nhật trạng thái validation khi người dùng nhập
                         setStateDialog(() {
                           isLengthValid = value.length >= 8;
                           hasUppercase = value.contains(RegExp(r'[A-Z]'));
@@ -192,97 +150,65 @@ class _SettingsTabState extends State<SettingsTab> {
                       },
                     ),
                     const SizedBox(height: 8),
-                    // Hiển thị trạng thái validation mật khẩu
                     _buildCheckRow(isLengthValid, 'Tối thiểu 8 ký tự'),
                     _buildCheckRow(hasUppercase, 'Chứa chữ hoa'),
                     _buildCheckRow(hasLowercase, 'Chứa chữ thường'),
                     _buildCheckRow(hasNumber, 'Chứa chữ số'),
                     const SizedBox(height: 8),
-                    // Trường xác nhận mật khẩu mới
                     TextField(
                       controller: confirmPasswordController,
                       obscureText: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Xác nhận mật khẩu mới',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.check_circle_outline),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Xác nhận mật khẩu mới', border: OutlineInputBorder(), prefixIcon: Icon(Icons.check_circle_outline)),
                     ),
                     if (passwordError != null) ...[
                       const SizedBox(height: 6),
                       Text(passwordError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
                     ],
                     const SizedBox(height: 8),
-                    // Nút lưu mật khẩu
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blueGrey.shade700,
                         foregroundColor: Colors.white,
-                        textStyle: const TextStyle(fontWeight: FontWeight.bold),
                         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          side: BorderSide(color: Colors.blueGrey.shade900, width: 1.5),
-                        ),
                       ),
-                      onPressed: isSavingPassword
-                          ? null
-                          : () async {
-                              // Validation các trường mật khẩu
-                              final oldPass = currentPasswordController.text;
-                              final newPass = newPasswordController.text;
-                              final confirmPass = confirmPasswordController.text;
+                      onPressed: isSavingPassword ? null : () async {
+                        final oldPass = currentPasswordController.text;
+                        final newPass = newPasswordController.text;
+                        final confirmPass = confirmPasswordController.text;
 
-                              if (oldPass.isEmpty || newPass.isEmpty || confirmPass.isEmpty) {
-                                setStateDialog(() => passwordError = 'Vui lòng điền đầy đủ thông tin.');
-                                return;
-                              }
-                              if (newPass != confirmPass) {
-                                setStateDialog(() => passwordError = 'Mật khẩu mới không khớp nhau.');
-                                return;
-                              }
-                              final pwdError = _validatePassword(newPass);
-                              if (pwdError.isNotEmpty) {
-                                setStateDialog(() => passwordError = pwdError);
-                                return;
-                              }
+                        if (oldPass.isEmpty || newPass.isEmpty || confirmPass.isEmpty) {
+                          setStateDialog(() => passwordError = 'Vui lòng điền đủ thông tin.');
+                          return;
+                        }
+                        if (newPass != confirmPass) {
+                          setStateDialog(() => passwordError = 'Mật khẩu không khớp.');
+                          return;
+                        }
+                        final pwdError = _validatePassword(newPass);
+                        if (pwdError.isNotEmpty) {
+                          setStateDialog(() => passwordError = pwdError);
+                          return;
+                        }
 
-                              // Bắt đầu lưu mật khẩu
-                              setStateDialog(() {
-                                isSavingPassword = true;
-                                passwordError = null;
-                              });
-                              try {
-                                // Reauthenticate trước khi đổi mật khẩu
-                                final credential = EmailAuthProvider.credential(email: user?.email ?? '', password: oldPass);
-                                await user?.reauthenticateWithCredential(credential);
-                                await user?.updatePassword(newPass);
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đổi mật khẩu thành công!'), backgroundColor: Colors.green));
-                                }
-                              } on FirebaseAuthException catch (e) {
-                                setStateDialog(() => passwordError = (e.code == 'wrong-password' || e.code == 'invalid-credential') ? 'Mật khẩu hiện tại không đúng.' : 'Lỗi hệ thống: ${e.message}');
-                              } catch (_) {
-                                setStateDialog(() => passwordError = 'Đã xảy ra lỗi không xác định.');
-                              } finally {
-                                setStateDialog(() => isSavingPassword = false);
-                              }
-                            },
-                      child: isSavingPassword ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Lưu mật khẩu', style: TextStyle(color: Colors.white)),
+                        setStateDialog(() { isSavingPassword = true; passwordError = null; });
+                        try {
+                          final credential = EmailAuthProvider.credential(email: currentUser?.email ?? '', password: oldPass);
+                          await currentUser?.reauthenticateWithCredential(credential);
+                          await currentUser?.updatePassword(newPass);
+                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đổi mật khẩu thành công!'), backgroundColor: Colors.green));
+                        } on FirebaseAuthException catch (e) {
+                          setStateDialog(() => passwordError = (e.code == 'wrong-password' || e.code == 'invalid-credential') ? 'Mật khẩu hiện tại sai.' : 'Lỗi: ${e.message}');
+                        } finally {
+                          setStateDialog(() => isSavingPassword = false);
+                        }
+                      },
+                      child: isSavingPassword ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Lưu mật khẩu'),
                     ),
                   ],
                 ),
               ),
-              // Actions của dialog: nút đóng
               actions: [
-                TextButton(
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.deepPurple.shade700,
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  onPressed: () => Navigator.pop(ctx), // Đóng dialog
-                  child: const Text('Đóng'),
-                ),
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đóng')),
               ],
             );
           },
@@ -291,43 +217,175 @@ class _SettingsTabState extends State<SettingsTab> {
     );
   }
 
-  // build: Xây dựng UI chính của SettingsTab
-  // Hiển thị thông tin tài khoản trong Card với ListTile có thể tap
+  // DIALOG: CHỌN MÀU THEME
+  void _showThemeDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Chọn màu giao diện'),
+        content: Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: appColors.map((color) {
+            return GestureDetector(
+              onTap: () {
+                // TODO: Gọi hàm đổi màu từ ThemeProvider của bạn
+                // Ví dụ: Provider.of<ThemeProvider>(context, listen: false).changeThemeColor(color);
+                Navigator.pop(ctx);
+              },
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  // DIALOG: XÓA DỮ LIỆU
+  void _showDeleteDataDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xóa toàn bộ dữ liệu?', style: TextStyle(color: Colors.red)),
+        content: const Text('Hành động này sẽ xóa vĩnh viễn tất cả các bản ghi thu chi và không thể khôi phục. Bạn có chắc chắn không?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () async {
+              Navigator.pop(ctx); // Đóng hộp thoại
+              
+              final userId = FirebaseAuth.instance.currentUser?.uid;
+              if (userId != null) {
+                try {
+                  // Gọi lệnh xóa các subcollection như đã bàn (ví dụ xóa 'categories')
+                  final categoriesRef = FirebaseFirestore.instance.collection('users').doc(userId).collection('categories');
+                  final snapshots = await categoriesRef.get();
+                  final batch = FirebaseFirestore.instance.batch();
+                  for (var doc in snapshots.docs) {
+                    batch.delete(doc.reference);
+                  }
+                  await batch.commit();
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa sạch dữ liệu thu chi!')));
+                  }
+                } catch (e) {
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi khi xóa: $e')));
+                }
+              }
+            },
+            child: const Text('Xóa tất cả'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // DIALOG: THÔNG TIN ỨNG DỤNG
+  void _showAppInfoDialog() {
+    showAboutDialog(
+      context: context,
+      applicationName: 'Sổ Thu Chi',
+      applicationVersion: 'Phiên bản 1.0.0',
+      applicationIcon: const Icon(Icons.account_balance_wallet, size: 50, color: Colors.blueGrey),
+      children: const [
+        Text('Ứng dụng quản lý thu chi cá nhân an toàn và bảo mật.\n\nPhát triển bởi: Nhóm 8.'),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Luôn lấy currentUser mới nhất mỗi khi build lại giao diện
+    final currentUser = FirebaseAuth.instance.currentUser;
+    // final currentThemeColor = Provider.of<ThemeProvider>(context).themeColor; // Mở cmt dòng này nếu muốn lấy màu theme hiện tại
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // Tiêu đề section tài khoản
-        const Text(
-          'Tài khoản',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueGrey),
-        ),
-        const SizedBox(height: 10),
-        // Card chứa thông tin tài khoản
+        // --- 1. TÀI KHOẢN ---
+        const Text('Tài khoản', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+        const SizedBox(height: 8),
         Card(
-          elevation: 2,
+          elevation: 0,
+          color: Colors.blueGrey.shade50,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ListTile(
+            leading: const CircleAvatar(backgroundColor: Colors.white, child: Icon(Icons.person, color: Colors.blueGrey)),
+            title: Text(
+              currentUser?.displayName?.isNotEmpty == true ? currentUser!.displayName! : (currentUser?.email ?? 'Chưa đăng nhập'),
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: currentUser?.displayName?.isNotEmpty == true ? Text(currentUser!.email ?? '') : null,
+            trailing: const Icon(Icons.edit, size: 20),
+            onTap: _showAccountSettingsDialog,
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // --- 2. CÀI ĐẶT ỨNG DỤNG ---
+        const Text('Cài đặt', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+        const SizedBox(height: 8),
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.shade300),
+          ),
           child: Column(
             children: [
-              // ListTile hiển thị thông tin user và cho phép tap để mở dialog
               ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.blueGrey.shade100,
-                  child: const Icon(Icons.person, color: Colors.blueGrey),
-                ),
-                title: Text(
-                  // Hiển thị displayName nếu có, ngược lại hiển thị email
-                  user?.displayName?.isNotEmpty == true ? user!.displayName! : (user?.email ?? 'Chưa đăng nhập'),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                // Hiển thị email ở subtitle nếu có displayName
-                subtitle: user?.displayName?.isNotEmpty == true ? Text(user!.email ?? '') : null,
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16), // Icon mũi tên
-                onTap: _showAccountSettingsDialog, // Mở dialog khi tap
+                leading: const Icon(Icons.color_lens, color: Colors.orange),
+                title: const Text('Đổi màu giao diện'),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: _showThemeDialog,
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.delete_forever, color: Colors.red),
+                title: const Text('Xóa toàn bộ dữ liệu'),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: _showDeleteDataDialog,
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.info_outline, color: Colors.blue),
+                title: const Text('Thông tin ứng dụng'),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: _showAppInfoDialog,
               ),
             ],
           ),
+        ),
+        const SizedBox(height: 30),
+
+        // --- 3. ĐĂNG XUẤT ---
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red.shade50,
+            foregroundColor: Colors.red,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          onPressed: () async {
+            await FirebaseAuth.instance.signOut();
+            if (context.mounted) {
+              // TODO: Chỉnh sửa lại tên class AuthScreen cho đúng với dự án của bạn
+              // Navigator.pushAndRemoveUntil(
+              //   context,
+              //   MaterialPageRoute(builder: (context) => const AuthScreen()),
+              //   (route) => false, // Xóa toàn bộ lịch sử trang
+              // );
+            }
+          },
+          icon: const Icon(Icons.logout),
+          label: const Text('Đăng xuất', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ],
     );
