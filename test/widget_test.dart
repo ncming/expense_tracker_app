@@ -1,30 +1,31 @@
-// This is a basic Flutter widget test.
+// Test widget cho màn hình đăng nhập.
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Mục tiêu test này:
+// 1) Đảm bảo AuthScreen render đúng các thành phần quan trọng của mode Đăng Nhập.
+// 2) Phát hiện sớm lỗi UI khi refactor (đổi text, mất field, mất nút Google...).
+// 3) Giữ test nhẹ, không phụ thuộc Firebase/network để chạy nhanh trong CI.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:no_money_no_me/main.dart';
+import 'package:no_money_no_me/auth_screen.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  // Smoke test cho giao diện đăng nhập mặc định.
+  // Không test flow bấm nút ở đây, chỉ xác nhận các widget cốt lõi xuất hiện.
+  testWidgets('AuthScreen shows login UI', (WidgetTester tester) async {
+    // Bọc bằng MaterialApp để cung cấp Material context cho Scaffold/TextField/Button.
+    await tester.pumpWidget(const MaterialApp(home: AuthScreen()));
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // "Đăng Nhập" xuất hiện ở cả title và label nút nên dùng findsWidgets.
+    expect(find.text('Đăng Nhập'), findsWidgets);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Ở mode login mặc định có đúng 2 ô nhập: Email + Mật khẩu.
+    expect(find.byType(TextField), findsNWidgets(2));
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Kiểm tra các text/CTA quan trọng của màn hình.
+    expect(find.text('Email'), findsOneWidget);
+    expect(find.text('Mật khẩu'), findsOneWidget);
+    expect(find.text('Quên mật khẩu?'), findsOneWidget);
+    expect(find.text('Tiếp tục với Google'), findsOneWidget);
   });
 }
