@@ -246,12 +246,13 @@ class _SettingsTabState extends State<SettingsTab> {
   }
 
   // DIALOG: XÓA DỮ LIỆU
+  // DIALOG: XÓA DỮ LIỆU (Đã sửa lỗi để xóa sạch cả giao dịch và danh mục)
   void _showDeleteDataDialog() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Xóa toàn bộ dữ liệu?', style: TextStyle(color: Colors.red)),
-        content: const Text('Hành động này sẽ xóa vĩnh viễn tất cả các bản ghi thu chi và không thể khôi phục. Bạn có chắc chắn không?'),
+        content: const Text('Hành động này sẽ xóa vĩnh viễn tất cả danh mục và các bản ghi thu chi. Bạn có chắc chắn không?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
           ElevatedButton(
@@ -262,20 +263,40 @@ class _SettingsTabState extends State<SettingsTab> {
               final userId = FirebaseAuth.instance.currentUser?.uid;
               if (userId != null) {
                 try {
-                  // Gọi lệnh xóa các subcollection như đã bàn (ví dụ xóa 'categories')
-                  final categoriesRef = FirebaseFirestore.instance.collection('users').doc(userId).collection('categories');
-                  final snapshots = await categoriesRef.get();
-                  final batch = FirebaseFirestore.instance.batch();
-                  for (var doc in snapshots.docs) {
+                  final firestore = FirebaseFirestore.instance;
+                  final userRef = firestore.collection('users').doc(userId);
+
+                  // 1. Lấy danh sách toàn bộ Giao dịch
+                  final transactionsSnap = await userRef.collection('transactions').get();
+                  // 2. Lấy danh sách toàn bộ Danh mục
+                  final categoriesSnap = await userRef.collection('categories').get();
+                  // 3. Dùng WriteBatch để thực hiện xóa hàng loạt cho hiệu quả
+                  final batch = firestore.batch();
+                  // Đưa các lệnh xóa giao dịch vào batch
+                  for (var doc in transactionsSnap.docs) {
                     batch.delete(doc.reference);
                   }
-                  await batch.commit();
+                  // Đưa các lệnh xóa danh mục vào batch
+                  for (var doc in categoriesSnap.docs) {
+                    batch.delete(doc.reference);
+                  }
 
+                  // Thực thi xóa tất cả trong một lần gọi duy nhất
+                  await batch.commit();
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa sạch dữ liệu thu chi!')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Đã xóa sạch toàn bộ dữ liệu thành công!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
                   }
                 } catch (e) {
-                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi khi xóa: $e')));
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Lỗi khi xóa: $e'), backgroundColor: Colors.red)
+                    );
+                  }
                 }
               }
             },
@@ -294,7 +315,7 @@ class _SettingsTabState extends State<SettingsTab> {
       applicationVersion: 'Phiên bản 1.0.0',
       applicationIcon: const Icon(Icons.account_balance_wallet, size: 50, color: Colors.blueGrey),
       children: const [
-        Text('Ứng dụng quản lý thu chi cá nhân an toàn và bảo mật.\n\nPhát triển bởi: Nhóm 8.'),
+        Text('Ứng dụng quản lý thu chi cá nhân an toàn và bảo mật.\n\nPhát triển bởi: Học viên VNUA.'),
       ],
     );
   }

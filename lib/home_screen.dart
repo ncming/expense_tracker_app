@@ -98,7 +98,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_selectedIndex == 2 ? 'Quản lý Danh mục' : 'Sổ Thu Chi'),
+        title: Text(_selectedIndex == 2 ? 'Quản Lý Danh Mục' : 'Sổ Thu Chi'),
         actions: [
           // Nếu đang ở Tab Lịch, hiện nút chọn tháng/năm trên thanh tiêu đề
           if (_selectedIndex == 0) ...[
