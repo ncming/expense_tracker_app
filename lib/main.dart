@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:provider/provider.dart'; // [MỚI] Import provider để quản lý state
+import 'package:provider/provider.dart'; // Import provider để quản lý state
 
 //Import thư viện Firebase
 import 'package:firebase_core/firebase_core.dart';
@@ -10,7 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart'; //Thư viện xác thực
 // Import các file vừa chia
 import 'auth_screen.dart';
 import 'home_screen.dart';
-import 'utils.dart'; // [MỚI] Import utils để sử dụng ThemeProvider
+import 'utils.dart'; // Import utils để sử dụng ThemeProvider
 
 void main() async {
   //Đảm bảo Flutter Binding được khởi tạo trước khi gọi code bất đồng bộ
