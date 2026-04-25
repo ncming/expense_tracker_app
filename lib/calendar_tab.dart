@@ -14,8 +14,6 @@ class CalendarTab extends StatefulWidget {
   @override
   State<CalendarTab> createState() => CalendarTabState();
 }
-
-// Bỏ chữ _ ở State để file khác (HomeScreen) có thể truy cập được các hàm bên trong
 class CalendarTabState extends State<CalendarTab> {
   DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now();

@@ -9,7 +9,7 @@ class ThemeProvider extends ChangeNotifier {
   Color _themeColor = Colors.blueGrey;
   Color get themeColor => _themeColor;
 
-  // [MỚI] Hàm tải màu từ Firestore khi người dùng đăng nhập
+  //Hàm tải màu từ Firestore khi người dùng đăng nhập
   Future<void> loadThemeColor(String userId) async {
     try {
       final doc = await FirebaseFirestore.instance
@@ -27,7 +27,7 @@ class ThemeProvider extends ChangeNotifier {
     }
   }
 
-  // [MỚI] Cập nhật màu và đồng bộ lên Firestore ngay lập tức
+  //Cập nhật màu và đồng bộ lên Firestore ngay lập tức
   Future<void> changeThemeColor(Color color, String? userId) async {
     _themeColor = color;
     notifyListeners();

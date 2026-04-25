@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 
-// [SỬA] Không cần import auth_screen.dart nữa vì AuthWrapper ở main.dart sẽ tự lo việc chuyển trang
-import 'utils.dart'; // [SỬA] Import utils.dart để sử dụng ThemeProvider
+//Không cần import auth_screen.dart nữa vì AuthWrapper ở main.dart sẽ tự lo việc chuyển trang
+import 'utils.dart'; //Import utils.dart để sử dụng ThemeProvider
 
 class SettingsTab extends StatefulWidget {
   const SettingsTab({super.key});
@@ -571,7 +571,6 @@ class _SettingsTabState extends State<SettingsTab> {
             ),
           ),
           onPressed: () async {
-            // [SỬA] Đã loại bỏ code chuyển trang thừa.
             // Nhờ AuthWrapper, chỉ cần gọi hàm này là App tự biết đường đẩy về Login
             await FirebaseAuth.instance.signOut();
           },

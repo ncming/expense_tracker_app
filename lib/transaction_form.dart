@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; //Import thư viện này để xử lý việc định dạng số (dấu phẩy) trong ô nhập liệu
+import 'package:flutter/services.dart'; //Import thư viện xử lý việc định dạng số (dấu phẩy) trong ô nhập liệu
 import 'package:intl/intl.dart';
-import 'models.dart';
+import 'models.dart';//models để thêm icon
 import 'utils.dart';
 
 // FORM NHẬP LIỆU THU CHI

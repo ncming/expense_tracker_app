@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Transaction;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'models.dart';
-import 'package:provider/provider.dart'; // [MỚI] Thêm import provider
+import 'package:provider/provider.dart'; //Thêm import provider
 
 // Import các tab
 import 'calendar_tab.dart';
 import 'utilities_tab.dart';
 import 'settings_tab.dart'; // Import tab cài đặt mới
 import 'report_tab.dart'; // Thêm dòng này
-import 'utils.dart'; // [MỚI] Đảm bảo import utils để dùng ThemeProvider
+import 'utils.dart'; //Đảm bảo import utils để dùng ThemeProvider
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -26,9 +26,9 @@ class _MyHomePageState extends State<MyHomePage> {
   final GlobalKey<CalendarTabState> _calendarTabKey =
       GlobalKey<CalendarTabState>();
   final GlobalKey<UtilitiesTabState> _utilitiesTabKey =
-      GlobalKey<UtilitiesTabState>(); // [MỚI] Key cho tiện ích
+      GlobalKey<UtilitiesTabState>(); //Key cho tiện ích
 
-  // [MỚI] Hàm lấy tiêu đề AppBar tương ứng với từng Tab
+  //Hàm lấy tiêu đề AppBar tương ứng với từng Tab
   String _getAppBarTitle(int index) {
     switch (index) {
       case 0:

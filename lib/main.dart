@@ -7,7 +7,6 @@ import 'package:provider/provider.dart'; // Import provider để quản lý sta
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart'; //Thư viện xác thực
 
-// Import các file vừa chia
 import 'auth_screen.dart';
 import 'home_screen.dart';
 import 'utils.dart'; // Import utils để sử dụng ThemeProvider
